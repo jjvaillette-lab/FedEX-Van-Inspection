@@ -37,7 +37,7 @@ async function saveToSupabase(inspection: Inspection): Promise<void> {
   // Upload each photo to Storage and swap the inline base64 for a public URL.
   const uploadedPhotos: InspectionPhoto[] = [];
   for (const photo of inspection.photos) {
-    const match = /^data:(.+?);base64,(.*)$/s.exec(photo.url);
+    const match = /^data:(.+?);base64,([\s\S]*)$/.exec(photo.url);
     if (!match) {
       // Already a URL (or empty) — keep as-is.
       uploadedPhotos.push(photo);
