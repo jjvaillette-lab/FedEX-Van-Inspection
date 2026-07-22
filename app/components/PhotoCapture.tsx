@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import type { PhotoStep } from "@/lib/questions";
+import { IconCamera } from "@/app/components/icons";
 
 interface PhotoCaptureProps {
   step: PhotoStep;
@@ -9,6 +10,9 @@ interface PhotoCaptureProps {
   total: number;
   existing?: string;
   onCapture: (dataUrl: string) => void;
+  /** Optional-report photos also collect a description. */
+  description?: string;
+  onDescription?: (text: string) => void;
 }
 
 /** Downscale a captured photo to keep uploads small (important on old phones). */
@@ -37,7 +41,15 @@ function downscale(file: File, maxDim = 1100, quality = 0.7): Promise<string> {
   });
 }
 
-export default function PhotoCapture({ step, index, total, existing, onCapture }: PhotoCaptureProps) {
+export default function PhotoCapture({
+  step,
+  index,
+  total,
+  existing,
+  onCapture,
+  description,
+  onDescription,
+}: PhotoCaptureProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | undefined>(existing);
   const [busy, setBusy] = useState(false);
@@ -50,7 +62,6 @@ export default function PhotoCapture({ step, index, total, existing, onCapture }
       setPreview(dataUrl);
       onCapture(dataUrl);
     } catch {
-      // Fallback: use the raw file if downscaling fails.
       const reader = new FileReader();
       reader.onload = () => {
         const url = reader.result as string;
@@ -65,14 +76,17 @@ export default function PhotoCapture({ step, index, total, existing, onCapture }
 
   return (
     <div className="flex flex-col items-center text-center">
-      <p className="text-sm font-medium text-sky-600">
+      <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
         Photo {index + 1} of {total}
       </p>
-      <div className="my-1 text-5xl" aria-hidden>
-        {step.icon}
-      </div>
-      <h2 className="text-2xl font-bold text-slate-900">{step.title}</h2>
-      <p className="mt-1 max-w-xs text-slate-600">{step.instruction}</p>
+      <h2 className="mt-1 text-xl font-bold text-slate-900">{step.title}</h2>
+      <p className="mt-1 max-w-xs text-sm text-slate-500">{step.instruction}</p>
+
+      {/* Framing guide — line the van up with the outline, full photo is stored. */}
+      {step.silhouette && !preview && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={step.silhouette} alt="" className="mt-4 w-full max-w-sm" />
+      )}
 
       <input
         ref={inputRef}
@@ -89,8 +103,16 @@ export default function PhotoCapture({ step, index, total, existing, onCapture }
           <img
             src={preview}
             alt={step.title}
-            className="mx-auto max-h-72 w-full rounded-2xl object-cover shadow"
+            className="mx-auto max-h-72 w-full rounded-xl object-cover shadow"
           />
+          {onDescription && (
+            <input
+              value={description ?? ""}
+              onChange={(e) => onDescription(e.target.value)}
+              placeholder="Describe what this photo shows (optional)"
+              className="mt-3 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-slate-500"
+            />
+          )}
           <button
             onClick={() => inputRef.current?.click()}
             className="mt-3 w-full rounded-lg border border-slate-300 bg-white py-2.5 text-sm font-medium text-slate-600"
@@ -102,9 +124,10 @@ export default function PhotoCapture({ step, index, total, existing, onCapture }
         <button
           onClick={() => inputRef.current?.click()}
           disabled={busy}
-          className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-sky-600 py-5 text-lg font-semibold text-white disabled:opacity-50"
+          className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 py-4 text-base font-semibold text-white disabled:opacity-50"
         >
-          {busy ? "Processing…" : "📷 Open Camera"}
+          <IconCamera size={20} />
+          {busy ? "Processing…" : "Open Camera"}
         </button>
       )}
     </div>

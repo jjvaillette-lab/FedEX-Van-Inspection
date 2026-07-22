@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { PLATFORM } from "@/lib/brand";
 import { useAuth } from "@/app/components/portal/AuthProvider";
+import { IconRoute, IconUsers, IconVan } from "@/app/components/icons";
 
 const MODULES = [
   {
     section: "Fleet",
-    icon: "🚐",
+    icon: IconVan,
     items: [
       { t: "Vehicle Inspections", d: "Pre & post-trip DOT safety checks with guided photos, auto-flagged vans, and full driver accountability." },
       { t: "Maintenance & Costs", d: "Log every repair by van and see exactly what each vehicle costs you across the year." },
@@ -15,14 +16,14 @@ const MODULES = [
   },
   {
     section: "Operations",
-    icon: "🗺️",
+    icon: IconRoute,
     items: [
       { t: "Dispatch", d: "Routes, assignments, and the daily moving parts in one place instead of scattered spreadsheets." },
     ],
   },
   {
     section: "Human Resources",
-    icon: "👥",
+    icon: IconUsers,
     items: [
       { t: "Payroll & HR", d: "Drivers, onboarding, hours, and payroll — the back office, handled." },
     ],
@@ -110,8 +111,13 @@ export default function Landing() {
         <div className="mt-8 space-y-8">
           {MODULES.map((m) => (
             <div key={m.section}>
-              <div className="mb-3 flex items-center gap-2">
-                <span className="text-2xl">{m.icon}</span>
+              <div className="mb-3 flex items-center gap-2.5">
+                <span
+                  className="flex h-8 w-8 items-center justify-center rounded-md"
+                  style={{ background: "#122A4A12", color: PLATFORM.navy }}
+                >
+                  <m.icon size={18} />
+                </span>
                 <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">{m.section}</h3>
               </div>
               <div className="grid gap-4 md:grid-cols-2">

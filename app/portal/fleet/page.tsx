@@ -2,6 +2,13 @@
 
 import Link from "next/link";
 import { useAuth } from "@/app/components/portal/AuthProvider";
+import {
+  IconChart,
+  IconChevronRight,
+  IconClipboard,
+  IconFile,
+  IconQr,
+} from "@/app/components/icons";
 
 export default function FleetInspectionModule() {
   const { tenant, hasPermission, user } = useAuth();
@@ -13,21 +20,28 @@ export default function FleetInspectionModule() {
       title: "Start Van Check",
       desc: "Run a pre or post-trip inspection: scan driver, scan van, checklist, photos.",
       href: "/inspection",
-      icon: "📋",
+      icon: IconClipboard,
       show: true,
     },
     {
-      title: "Inspection Dashboard",
-      desc: "Review completed inspections, flagged vans, and photo evidence.",
-      href: "/dashboard",
-      icon: "🗂️",
+      title: "Inspection Review",
+      desc: "History by date, van, or driver — issues, photo evidence, resolutions, exports.",
+      href: "/portal/fleet/inspections",
+      icon: IconChart,
       show: hasPermission("inspection.review"),
+    },
+    {
+      title: "Inspection Checklist",
+      desc: "Edit, hide, reorder, or add questions; DOT / Non-DOT mode; interior photos.",
+      href: "/portal/fleet/questions",
+      icon: IconFile,
+      show: isOwner || hasPermission("inspection.edit_questions"),
     },
     {
       title: "Van QR Generator",
       desc: "Create and print a scannable QR code for each van (one-time setup).",
       href: "/vans",
-      icon: "🔳",
+      icon: IconQr,
       show: isOwner || hasPermission("inspection.edit_questions"),
     },
   ].filter((a) => a.show);
@@ -39,23 +53,31 @@ export default function FleetInspectionModule() {
         <span>/</span>
         <span className="text-slate-500">Fleet</span>
       </nav>
-      <h1 className="flex items-center gap-2 text-2xl font-extrabold text-slate-900 md:text-3xl">
-        <span>🚐</span> Vehicle Inspections
-      </h1>
-      <p className="mt-1 text-slate-500">DOT pre &amp; post-trip safety checks for {tenant.name}.</p>
+      <h1 className="text-2xl font-bold tracking-tight text-slate-900">Vehicle Inspections</h1>
+      <p className="mt-0.5 text-sm text-slate-500">
+        Pre &amp; post-trip safety checks for {tenant.name}.
+      </p>
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-2">
+      <div className="mt-7 grid gap-3 sm:grid-cols-2">
         {actions.map((a) => (
           <Link
             key={a.href}
             href={a.href}
-            className="rounded-2xl border border-slate-200 bg-white p-6 transition hover:shadow-md"
+            className="rounded-lg border border-slate-200 bg-white p-5 transition-shadow hover:shadow-md"
           >
-            <div className="text-3xl">{a.icon}</div>
-            <h3 className="mt-3 text-lg font-bold text-slate-900">{a.title}</h3>
-            <p className="mt-1 text-sm text-slate-500">{a.desc}</p>
-            <span className="mt-3 inline-block text-sm font-semibold" style={{ color: brand }}>
-              Open →
+            <span
+              className="flex h-10 w-10 items-center justify-center rounded-lg"
+              style={{ background: `${brand}14`, color: brand }}
+            >
+              <a.icon size={21} />
+            </span>
+            <h3 className="mt-3 text-[15px] font-semibold text-slate-900">{a.title}</h3>
+            <p className="mt-1 text-[13px] leading-snug text-slate-500">{a.desc}</p>
+            <span
+              className="mt-3 inline-flex items-center gap-0.5 text-[13px] font-semibold"
+              style={{ color: brand }}
+            >
+              Open <IconChevronRight size={14} />
             </span>
           </Link>
         ))}

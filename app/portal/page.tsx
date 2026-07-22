@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useAuth } from "@/app/components/portal/AuthProvider";
+import { MODULE_ICONS, IconChevronRight } from "@/app/components/icons";
 import { MODULES, SECTIONS } from "@/lib/tenant";
 
 export default function PortalOverview() {
@@ -11,55 +12,74 @@ export default function PortalOverview() {
 
   return (
     <div className="mx-auto max-w-5xl px-5 py-8 md:px-8 md:py-10">
-      <p className="text-sm text-slate-500">Welcome back,</p>
-      <h1 className="text-2xl font-extrabold text-slate-900 md:text-3xl">{firstName}</h1>
-      <p className="mt-1 text-slate-500">Here's everything running at {tenant.name}.</p>
+      <p className="text-sm text-slate-500">Welcome back, {firstName}.</p>
+      <h1 className="mt-0.5 text-2xl font-bold tracking-tight text-slate-900">
+        {tenant.name}
+      </h1>
 
       {SECTIONS.map((section) => {
         const mods = MODULES.filter((m) => m.section === section);
         return (
-          <div key={section} className="mt-9">
-            <h2 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">{section}</h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div key={section} className="mt-8">
+            <h2 className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-400">
+              {section}
+            </h2>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {mods.map((m) => {
                 const enabled = tenant.enabledModules.includes(m.key);
+                const Ic = MODULE_ICONS[m.icon];
                 const body = (
                   <>
                     <div className="flex items-start justify-between">
-                      <span className="text-3xl">{m.icon}</span>
+                      <span
+                        className="flex h-10 w-10 items-center justify-center rounded-lg"
+                        style={
+                          enabled
+                            ? { background: `${brand}14`, color: brand }
+                            : { background: "#f1f5f9", color: "#94a3b8" }
+                        }
+                      >
+                        <Ic size={21} />
+                      </span>
                       {enabled ? (
                         <span
-                          className="rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white"
-                          style={{ background: brand }}
+                          className="rounded-full px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-wide"
+                          style={{ background: `${brand}14`, color: brand }}
                         >
                           Active
                         </span>
                       ) : (
-                        <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-slate-400">
+                        <span className="rounded-full border border-slate-200 px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-wide text-slate-400">
                           Coming soon
                         </span>
                       )}
                     </div>
-                    <h3 className="mt-3 font-bold text-slate-900">{m.name}</h3>
-                    <p className="mt-1 text-sm text-slate-500">{m.description}</p>
+                    <h3 className="mt-3 text-[15px] font-semibold text-slate-900">{m.name}</h3>
+                    <p className="mt-1 text-[13px] leading-snug text-slate-500">{m.description}</p>
                     {enabled && (
-                      <span className="mt-3 inline-block text-sm font-semibold" style={{ color: brand }}>
-                        Open →
+                      <span
+                        className="mt-3 inline-flex items-center gap-0.5 text-[13px] font-semibold"
+                        style={{ color: brand }}
+                      >
+                        Open <IconChevronRight size={14} />
                       </span>
                     )}
                   </>
                 );
 
-                const base = "rounded-2xl border bg-white p-5 transition";
                 if (enabled && m.href) {
                   return (
-                    <Link key={m.key} href={m.href} className={`${base} border-slate-200 hover:shadow-md`}>
+                    <Link
+                      key={m.key}
+                      href={m.href}
+                      className="rounded-lg border border-slate-200 bg-white p-5 transition-shadow hover:shadow-md"
+                    >
                       {body}
                     </Link>
                   );
                 }
                 return (
-                  <div key={m.key} className={`${base} border-dashed border-slate-200 opacity-75`}>
+                  <div key={m.key} className="rounded-lg border border-dashed border-slate-200 bg-white/60 p-5">
                     {body}
                   </div>
                 );

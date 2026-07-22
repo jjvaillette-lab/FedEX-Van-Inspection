@@ -98,7 +98,8 @@ export interface PortalModule {
   section: Section;
   name: string;
   description: string;
-  icon: string;
+  /** Icon key resolved via MODULE_ICONS in app/components/icons.tsx. */
+  icon: "van" | "wrench" | "route" | "users";
   /** Route within the portal when the module is active. */
   href?: string;
 }
@@ -109,7 +110,7 @@ export const MODULES: PortalModule[] = [
     section: "Fleet",
     name: "Vehicle Inspections",
     description: "Pre & post-trip DOT safety checks, photos, and flagged vans.",
-    icon: "🚐",
+    icon: "van",
     href: "/portal/fleet",
   },
   {
@@ -117,21 +118,21 @@ export const MODULES: PortalModule[] = [
     section: "Fleet",
     name: "Maintenance & Costs",
     description: "Log repairs by van, track cost per vehicle over the year.",
-    icon: "🔧",
+    icon: "wrench",
   },
   {
     key: "operations-dispatch",
     section: "Operations",
     name: "Dispatch",
     description: "Routes, assignments, and daily operations.",
-    icon: "🗺️",
+    icon: "route",
   },
   {
     key: "hr-payroll",
     section: "Human Resources",
     name: "Payroll & HR",
     description: "Drivers, onboarding, hours, and payroll.",
-    icon: "👥",
+    icon: "users",
   },
 ];
 
