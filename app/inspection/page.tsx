@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import BarcodeScanner from "@/app/components/BarcodeScanner";
@@ -73,6 +73,13 @@ export default function InspectionPage() {
     setTripType(trip);
     setCycle(cycleNum);
     setLoadError(null);
+    // A trip truly starts here — reset the form once, so answers and photos
+    // survive every later step change all the way to submit.
+    setAnswers({});
+    setPhotos({});
+    setPhotoDescriptions({});
+    setPhotoIndex(0);
+    setOptionalIndex(0);
     try {
       const res = await fetch(`/api/questions?trip=${trip}`);
       const data = await res.json();
@@ -199,15 +206,6 @@ export default function InspectionPage() {
   const progress =
     step === "driver" ? 12 : step === "van" ? 25 : step === "trip_check" ? 32 :
     step === "questions" ? 55 : step === "photos" ? 75 : step === "optional" ? 90 : 100;
-
-  useEffect(() => {
-    // Reset per-trip state when a new trip begins.
-    setAnswers({});
-    setPhotos({});
-    setPhotoDescriptions({});
-    setPhotoIndex(0);
-    setOptionalIndex(0);
-  }, [tripType, cycle, step === "questions" ? 1 : 0]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ---------- render ---------- */
 
