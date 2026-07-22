@@ -128,8 +128,9 @@ export default function DriverHub() {
           </div>
 
           <p className="mt-6 text-center text-xs text-slate-400">
-            Tip: add this page to your home screen — Share → &quot;Add to Home Screen&quot; — so it
-            opens like an app.
+            Tip: tap Share → &quot;Add to Home Screen&quot; to install this as the{" "}
+            <strong>Van Check</strong> app. If it asks for the activation code the first time it
+            opens, enter it once and you&apos;re set.
           </p>
         </>
       )}
