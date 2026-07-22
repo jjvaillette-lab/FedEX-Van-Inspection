@@ -8,9 +8,20 @@ Last updated: 2026-07-21 · Owner: Jason Vaillette
 
 ---
 
-## 0. Status snapshot
-- **Prototype live & tested** (single company): driver flow (scan → DOT checklist → 4 photos → report-to-management), van QR generator, management dashboard, Supabase cloud DB + photo storage, deployed to Vercel.
-- Everything below is **planned**, to build after the current testing phase.
+## 0. Status snapshot (updated 2026-07-22)
+**BUILT & DEPLOYED (v2):**
+- Professional business UI (icon design system, no emoji) across portal, landing, driver app
+- Pre/post-trip auto-detection (1st scan = pre, 2nd = post), daily cycles, "already inspected today — start new?" prompt, multiple-inspections-per-day kept & denoted
+- Failed Inspection recording — partial data always saved; "End early" flow; failed trips don't complete a cycle (re-scan repeats the same trip type)
+- Questions: beginning/ending mileage, fuel-on-return (yes/no), post-trip open notes
+- **Owner Checklist Editor** (Fleet › Checklist): hide toggle per question, inline edit, reorder, add custom questions, DOT/Non-DOT company mode, interior-photos toggle (off by default) — DB-backed, seeds defaults
+- Photos: van silhouette framing guides (4 exterior, full photo stored); up to 4 optional report photos w/ description fields; 3 post-trip interior photos behind owner toggle
+- **Inspection Review Center** (Fleet › Inspections): history by All/Date/Van/Driver, search + status filters, stat tiles, missing-post-trip & post-trip-pending detection, PRE/POST badges, resolve workflow (mandatory note + name + optional receipt upload → van folder), immutable driver records + office comments w/ disagreement flag (both logged & searchable), side-by-side photo compare, CSV export (permission-gated)
+- Driver name/route attached to every record
+
+**⚠️ Pending user action:** run `supabase/migration-v2.sql` in Supabase SQL editor — until then the app runs on graceful fallbacks (trip types read as "pre", checklist edits & resolve/comments blocked with a clear message).
+
+**Still planned:** daily email digest + instant email/SMS alerts (needs mail/SMS provider), stoplight trends, van maintenance tab + cost analysis, reporting tab, PDF export, real per-user auth (Supabase Auth + RLS), Stripe billing, audit log, multi-location.
 
 ---
 

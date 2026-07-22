@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import BarcodeScanner from "@/app/components/BarcodeScanner";
 import PhotoCapture from "@/app/components/PhotoCapture";
+import { useAuth } from "@/app/components/portal/AuthProvider";
 import { PHOTO_STEPS, INTERIOR_STEPS, OPTIONAL_SLOTS, type PhotoStep } from "@/lib/questions";
 import { parseDriverBarcode } from "@/lib/driver";
 import {
@@ -41,6 +42,9 @@ const dateKey = (iso: string) => new Date(iso).toLocaleDateString("en-US");
 
 export default function InspectionPage() {
   const router = useRouter();
+  const { user } = useAuth();
+  // Portal users came from the portal; driver devices go back to the driver hub.
+  const homeHref = user ? "/portal/fleet" : "/driver";
   const [step, setStep] = useState<Step>("driver");
   const [driver, setDriver] = useState<Driver | null>(null);
   const [vanId, setVanId] = useState<string | null>(null);
@@ -210,7 +214,7 @@ export default function InspectionPage() {
   return (
     <main className="mx-auto flex min-h-full max-w-md flex-col px-4 pb-10">
       <header className="sticky top-0 z-10 -mx-4 flex items-center justify-between bg-slate-900 px-4 py-3 text-white">
-        <Link href="/portal/fleet" className="text-sm text-slate-300">
+        <Link href={homeHref} className="text-sm text-slate-300">
           ✕ Exit
         </Link>
         <span className="text-sm font-semibold">
@@ -309,7 +313,7 @@ export default function InspectionPage() {
                 </p>
                 <div className="mt-5 grid grid-cols-2 gap-3">
                   <button
-                    onClick={() => router.push("/portal/fleet")}
+                    onClick={() => router.push(homeHref)}
                     className="rounded-lg border border-slate-300 py-2.5 text-sm font-semibold text-slate-700"
                   >
                     No, exit
@@ -627,7 +631,7 @@ export default function InspectionPage() {
               </div>
             )}
             <Link
-              href="/portal/fleet"
+              href={homeHref}
               className="mt-8 inline-block w-full rounded-xl bg-slate-900 py-4 font-semibold text-white"
             >
               Done

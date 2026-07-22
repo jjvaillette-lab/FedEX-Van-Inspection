@@ -1,25 +1,36 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { GATE_COOKIE, verifyGate } from "@/lib/gate";
+import { DRIVER_COOKIE, GATE_COOKIE, verifyDriver, verifyGate } from "@/lib/gate";
 
 /**
- * Pre-launch access gate (Next.js 16 "proxy", formerly middleware).
+ * Access control (Next.js 16 "proxy", formerly middleware).
  *
- * The public marketing page stays open; everything else — the portal, the
- * inspection app, and the API — requires the team access password. Enforced on
- * the server, so the app is genuinely private, not just visually hidden.
+ * Three access levels, enforced server-side:
+ *  - Public: marketing pages, sign-in, contact, and the driver activation page.
+ *  - Driver devices (DRIVER_COOKIE): ONLY the inspection surface — the driver
+ *    hub, the inspection flow, and the two APIs it needs. No portal, no
+ *    review data, no settings.
+ *  - Team (GATE_COOKIE): everything.
  */
 
-// Paths anyone may reach without signing in: the public marketing pages and the
-// sign-in / contact endpoints. Everything else (the working app + its data API)
-// stays private behind a valid session.
 function isPublic(pathname: string): boolean {
   return (
     pathname === "/" ||
     pathname === "/login" ||
     pathname === "/contact" ||
+    pathname === "/driver" ||
     pathname.startsWith("/api/gate") ||
+    pathname.startsWith("/api/driver-gate") ||
     pathname.startsWith("/api/contact")
+  );
+}
+
+/** Exact paths a driver-scoped device may reach. */
+function isDriverAllowed(pathname: string): boolean {
+  return (
+    pathname === "/inspection" ||
+    pathname === "/api/inspections" || // list (trip detection) + submit; /api/inspections/[id] stays team-only
+    pathname === "/api/questions"
   );
 }
 
@@ -28,10 +39,14 @@ export async function proxy(request: NextRequest) {
 
   if (isPublic(pathname)) return NextResponse.next();
 
-  const ok = await verifyGate(request.cookies.get(GATE_COOKIE)?.value);
-  if (ok) return NextResponse.next();
+  const team = await verifyGate(request.cookies.get(GATE_COOKIE)?.value);
+  if (team) return NextResponse.next();
 
-  // Block API calls with a 401; send page requests to the password screen.
+  if (isDriverAllowed(pathname)) {
+    const driver = await verifyDriver(request.cookies.get(DRIVER_COOKIE)?.value);
+    if (driver) return NextResponse.next();
+  }
+
   if (pathname.startsWith("/api/")) {
     return NextResponse.json({ error: "Access restricted" }, { status: 401 });
   }
