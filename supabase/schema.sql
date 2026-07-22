@@ -21,3 +21,16 @@ create index if not exists inspections_flagged_idx    on public.inspections (has
 -- RLS stays enabled (secure by default); add policies later if you ever expose
 -- the anon key to the browser.
 alter table public.inspections enable row level security;
+
+-- Contact form submissions (from the public Contact page).
+create table if not exists public.contact_messages (
+  id         uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  name       text not null,
+  email      text,
+  message    text not null,
+  recipient  text,           -- intended destination; set server-side, never shown to visitors
+  handled    boolean not null default false
+);
+
+alter table public.contact_messages enable row level security;

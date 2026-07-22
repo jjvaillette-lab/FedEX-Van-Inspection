@@ -28,7 +28,7 @@ export default function DashboardPage() {
   return (
     <main className="mx-auto max-w-2xl px-5 pb-16">
       <header className="flex items-center gap-3 py-5">
-        <Link href="/" className="text-slate-400">
+        <Link href="/portal/fleet" className="text-slate-400">
           ‹ Back
         </Link>
         <h1 className="text-lg font-bold">Management Dashboard</h1>

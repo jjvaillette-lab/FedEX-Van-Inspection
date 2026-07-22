@@ -78,7 +78,7 @@ export default function InspectionPage() {
     <main className="mx-auto flex min-h-full max-w-md flex-col px-4 pb-10">
       {/* Header */}
       <header className="sticky top-0 z-10 -mx-4 flex items-center justify-between bg-slate-900 px-4 py-3 text-white">
-        <Link href="/" className="text-sm text-slate-300">
+        <Link href="/portal/fleet" className="text-sm text-slate-300">
           ✕ Exit
         </Link>
         <span className="text-sm font-semibold">Van Safety Check</span>
@@ -304,7 +304,7 @@ export default function InspectionPage() {
               </div>
             )}
             <Link
-              href="/"
+              href="/portal/fleet"
               className="mt-8 inline-block w-full rounded-xl bg-slate-900 py-4 font-semibold text-white"
             >
               Done

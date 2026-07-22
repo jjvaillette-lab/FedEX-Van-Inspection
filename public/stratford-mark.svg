@@ -1,0 +1,11 @@
+<svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Stratford Delivery Corp">
+  <rect width="48" height="48" rx="12" fill="#0E7C5A"/>
+  <!-- simple delivery van glyph -->
+  <g fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M10 29 V18 a2 2 0 0 1 2 -2 h15 l6 6 h2 a2 2 0 0 1 2 2 v5"/>
+    <path d="M10 29 h27"/>
+    <circle cx="17" cy="31" r="2.9" fill="#0E7C5A"/>
+    <circle cx="31" cy="31" r="2.9" fill="#0E7C5A"/>
+    <path d="M27 16 v6 h8"/>
+  </g>
+</svg>

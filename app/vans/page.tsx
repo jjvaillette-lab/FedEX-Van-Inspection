@@ -48,7 +48,7 @@ export default function VansPage() {
   return (
     <main className="mx-auto max-w-md px-5 pb-16">
       <header className="flex items-center gap-3 py-5">
-        <Link href="/" className="text-slate-400">
+        <Link href="/portal/fleet" className="text-slate-400">
           ‹ Back
         </Link>
         <h1 className="text-lg font-bold">Van QR Generator</h1>
