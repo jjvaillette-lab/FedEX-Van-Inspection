@@ -202,7 +202,7 @@ export default function PhotoCapture({
               <img
                 src={step.silhouette}
                 alt=""
-                className="pointer-events-none absolute inset-0 m-auto max-h-[72%] max-w-[88%] opacity-90"
+                className="pointer-events-none absolute inset-0 m-auto max-h-[88%] w-[97%] object-contain opacity-90"
                 style={{ filter: "invert(1) brightness(1.7) drop-shadow(0 0 3px rgba(0,0,0,.7))" }}
               />
             )}
