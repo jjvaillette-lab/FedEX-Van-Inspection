@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import BarcodeScanner from "@/app/components/BarcodeScanner";
 import PhotoCapture from "@/app/components/PhotoCapture";
+import MultiPhotoCapture from "@/app/components/MultiPhotoCapture";
 import { useAuth } from "@/app/components/portal/AuthProvider";
 import { PHOTO_STEPS, INTERIOR_STEPS, OPTIONAL_SLOTS, type PhotoStep } from "@/lib/questions";
 import { parseDriverBarcode } from "@/lib/driver";
@@ -60,7 +61,6 @@ export default function InspectionPage() {
   const [answers, setAnswers] = useState<Record<string, { value: string; note?: string }>>({});
   const [photos, setPhotos] = useState<Partial<Record<PhotoSlot, string>>>({});
   const [photoDescriptions, setPhotoDescriptions] = useState<Partial<Record<PhotoSlot, string>>>({});
-  const [photoIndex, setPhotoIndex] = useState(0);
   const [optionalIndex, setOptionalIndex] = useState(0);
 
   const [result, setResult] = useState<SubmitResult | null>(null);
@@ -78,7 +78,6 @@ export default function InspectionPage() {
     setAnswers({});
     setPhotos({});
     setPhotoDescriptions({});
-    setPhotoIndex(0);
     setOptionalIndex(0);
     try {
       const res = await fetch(`/api/questions?trip=${trip}`);
@@ -148,7 +147,6 @@ export default function InspectionPage() {
     () => (interiorOn ? [...PHOTO_STEPS, ...INTERIOR_STEPS] : PHOTO_STEPS),
     [interiorOn]
   );
-  const currentPhotoStep = requiredSteps[photoIndex];
   const allPhotosDone = requiredSteps.every((p) => photos[p.slot]);
 
   const optionalTaken = OPTIONAL_SLOTS.filter((s) => photos[s]).length;
@@ -455,67 +453,29 @@ export default function InspectionPage() {
           </div>
         )}
 
-        {/* STEP — required photos */}
-        {step === "photos" && currentPhotoStep && (
+        {/* STEP — required photos (one continuous camera session) */}
+        {step === "photos" && (
           <div>
             <div className="mb-5 rounded-xl border border-sky-100 bg-sky-50 p-4 text-center text-sky-900">
               <p className="font-semibold">We require photos of the vehicle.</p>
               <p className="text-sm">
-                Follow the prompts to take {requiredSteps.length} pictures of the van.
+                Open the camera once — it walks you through all {requiredSteps.length} shots.
               </p>
             </div>
 
-            <PhotoCapture
-              key={currentPhotoStep.slot}
-              step={currentPhotoStep}
-              index={photoIndex}
-              total={requiredSteps.length}
-              existing={photos[currentPhotoStep.slot]}
-              onCapture={(dataUrl) =>
-                setPhotos((prev) => ({ ...prev, [currentPhotoStep.slot]: dataUrl }))
-              }
+            <MultiPhotoCapture
+              steps={requiredSteps}
+              photos={photos}
+              onCapture={(slot, dataUrl) => setPhotos((prev) => ({ ...prev, [slot]: dataUrl }))}
             />
 
-            <div className="mt-6 flex justify-center gap-2">
-              {requiredSteps.map((p, i) => (
-                <button
-                  key={p.slot}
-                  onClick={() => setPhotoIndex(i)}
-                  className={`h-2.5 w-2.5 rounded-full ${
-                    photos[p.slot] ? "bg-emerald-500" : i === photoIndex ? "bg-sky-500" : "bg-slate-300"
-                  }`}
-                  aria-label={p.title}
-                />
-              ))}
-            </div>
-
-            <div className="mt-6 flex gap-3">
-              {photoIndex > 0 && (
-                <button
-                  onClick={() => setPhotoIndex((i) => i - 1)}
-                  className="flex-1 rounded-xl border border-slate-300 bg-white py-3 font-medium text-slate-600"
-                >
-                  Back
-                </button>
-              )}
-              {photoIndex < requiredSteps.length - 1 ? (
-                <button
-                  disabled={!photos[currentPhotoStep.slot]}
-                  onClick={() => setPhotoIndex((i) => i + 1)}
-                  className="flex-[2] rounded-xl bg-sky-600 py-3 font-semibold text-white disabled:opacity-40"
-                >
-                  Next Photo
-                </button>
-              ) : (
-                <button
-                  disabled={!allPhotosDone}
-                  onClick={() => setStep("optional")}
-                  className="flex-[2] rounded-xl bg-sky-600 py-3 font-semibold text-white disabled:opacity-40"
-                >
-                  {allPhotosDone ? "Continue" : `Take all ${requiredSteps.length} photos`}
-                </button>
-              )}
-            </div>
+            <button
+              disabled={!allPhotosDone}
+              onClick={() => setStep("optional")}
+              className="mt-6 w-full rounded-xl bg-sky-600 py-4 text-lg font-semibold text-white disabled:opacity-40"
+            >
+              {allPhotosDone ? "Continue" : `Take all ${requiredSteps.length} photos`}
+            </button>
 
             {error && <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
           </div>
