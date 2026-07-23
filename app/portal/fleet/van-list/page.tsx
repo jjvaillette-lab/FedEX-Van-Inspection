@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/app/components/portal/AuthProvider";
-import { IconVan, IconWrench } from "@/app/components/icons";
+import { IconAlert, IconVan, IconWrench } from "@/app/components/icons";
 import type { MaintenanceRecord, VanRecord } from "@/lib/types";
 
 const money = (n: number) =>
@@ -24,6 +24,11 @@ export default function VanListPage() {
   const [persisted, setPersisted] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [view, setView] = useState<"active" | "inactive">("active");
+  const [showAlert, setShowAlert] = useState(false);
+  // The out-of-service pop-up fires once per visit to this screen, not on
+  // every data refresh after an edit.
+  const alertShownRef = useRef(false);
   const [editVan, setEditVan] = useState<VanRecord | null>(null);
   const [maintVan, setMaintVan] = useState<VanRecord | null>(null);
   const [statusVan, setStatusVan] = useState<VanRecord | null>(null);
@@ -33,9 +38,14 @@ export default function VanListPage() {
     fetch("/api/vans")
       .then((r) => r.json())
       .then((d) => {
-        setVans(d.vans ?? []);
+        const list: VanRecord[] = d.vans ?? [];
+        setVans(list);
         setPersisted(d.persisted !== false);
         setApiError(d.error ?? null);
+        if (!alertShownRef.current && list.some((v) => !v.active)) {
+          alertShownRef.current = true;
+          setShowAlert(true);
+        }
       })
       .finally(() => setLoading(false));
   };
@@ -173,40 +183,87 @@ export default function VanListPage() {
         <p className="py-16 text-center text-slate-400">Loading…</p>
       ) : (
         <>
-          <h2 className="mt-7 mb-2.5 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-emerald-700">
-            Active Vans
-            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-xs tabular-nums">
-              {active.length}
-            </span>
+          <div className="mt-7 mb-3 flex flex-wrap items-center gap-2.5">
+            <select
+              value={view}
+              onChange={(e) => setView(e.target.value as "active" | "inactive")}
+              className={`rounded-lg border bg-white px-3 py-2 text-sm font-bold outline-none ${
+                view === "active"
+                  ? "border-emerald-300 text-emerald-700"
+                  : "border-rose-300 text-rose-700"
+              }`}
+            >
+              <option value="active">Active Vans ({active.length})</option>
+              <option value="inactive">Inactive Vans ({inactive.length})</option>
+            </select>
+            {view === "active" && inactive.length > 0 && (
+              <button
+                onClick={() => setView("inactive")}
+                className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100"
+              >
+                <IconAlert size={13} />
+                {inactive.length} van{inactive.length === 1 ? "" : "s"} out of service
+              </button>
+            )}
             <span className="h-px flex-1 bg-slate-200" />
-          </h2>
-          {active.length === 0 ? (
-            <p className="rounded-lg border border-dashed border-slate-300 bg-white px-4 py-8 text-center text-sm text-slate-400">
-              No active vans.
-            </p>
-          ) : (
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {active.map((v) => <VanCard key={v.id} v={v} />)}
-            </div>
-          )}
+          </div>
 
-          <h2 className="mt-8 mb-2.5 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-rose-700">
-            Inactive Vans
-            <span className="rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-xs tabular-nums">
-              {inactive.length}
-            </span>
-            <span className="h-px flex-1 bg-slate-200" />
-          </h2>
-          {inactive.length === 0 ? (
+          {(view === "active" ? active : inactive).length === 0 ? (
             <p className="rounded-lg border border-dashed border-slate-300 bg-white px-4 py-8 text-center text-sm text-slate-400">
-              No vans out of service. 🎉
+              {view === "active" ? "No active vans." : "No vans out of service. 🎉"}
             </p>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {inactive.map((v) => <VanCard key={v.id} v={v} />)}
+              {(view === "active" ? active : inactive).map((v) => <VanCard key={v.id} v={v} />)}
             </div>
           )}
         </>
+      )}
+
+      {showAlert && inactive.length > 0 && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/60 px-5">
+          <div className="w-full max-w-md rounded-xl bg-white p-6">
+            <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900">
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-rose-50 text-rose-600">
+                <IconAlert size={19} />
+              </span>
+              {inactive.length} van{inactive.length === 1 ? "" : "s"} out of service
+            </h2>
+            <p className="mt-2 text-sm text-slate-600">
+              These vans are inactive and need attention before they can run routes.
+            </p>
+            <div className="mt-3 max-h-60 space-y-1.5 overflow-y-auto">
+              {inactive.map((v) => (
+                <div key={v.id} className="rounded-lg border border-rose-100 bg-rose-50 px-3 py-2">
+                  <p className="text-sm font-bold text-slate-900">{v.id}</p>
+                  {v.statusReason && (
+                    <p className="text-[11px] text-rose-800">
+                      {v.statusReason}
+                      {v.statusChangedAt ? ` · ${dateFmt(v.statusChangedAt)}` : ""}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setShowAlert(false)}
+                className="rounded-lg border border-slate-300 py-2.5 text-sm font-semibold text-slate-700"
+              >
+                OK
+              </button>
+              <button
+                onClick={() => {
+                  setView("inactive");
+                  setShowAlert(false);
+                }}
+                className="rounded-lg bg-rose-600 py-2.5 text-sm font-bold text-white hover:bg-rose-700"
+              >
+                View inactive vans
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {editVan && (
