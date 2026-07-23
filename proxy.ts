@@ -21,6 +21,8 @@ function isPublic(pathname: string, method: string): boolean {
     pathname === "/driver" ||
     pathname.startsWith("/api/gate") ||
     pathname.startsWith("/api/driver-gate") ||
+    // Vercel cron endpoint — the route enforces CRON_SECRET / team session itself.
+    pathname === "/api/recap" ||
     // Visitors may SUBMIT the contact form; reading messages stays team-only.
     (pathname.startsWith("/api/contact") && method === "POST")
   );

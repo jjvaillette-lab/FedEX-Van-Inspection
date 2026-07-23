@@ -47,7 +47,7 @@ export async function saveAlertSettings(settings: AlertSettings): Promise<void> 
   if (error) throw new Error(`Save failed: ${error.message}`);
 }
 
-async function sendEmail(to: string[], subject: string, text: string): Promise<void> {
+export async function sendEmail(to: string[], subject: string, text: string): Promise<void> {
   if (!emailConfigured() || to.length === 0) return;
   await fetch("https://api.resend.com/emails", {
     method: "POST",

@@ -9,6 +9,7 @@
 export type ModuleKey =
   | "fleet-inspection"
   | "fleet-maintenance"
+  | "operations-driver-stats"
   | "operations-dispatch"
   | "hr-payroll";
 
@@ -35,6 +36,7 @@ export const PERMISSIONS = {
   "inspection.edit_questions": "Edit the inspection checklist",
   "inspection.export": "Export inspection reports (PDF/CSV)",
   "fleet.maintenance": "Manage van maintenance & costs",
+  "ops.driver_stats": "View & manage driver stats",
   "reports.view": "View the reporting tab",
   "settings.branding": "Edit company branding",
   "users.manage": "Add / manage managers & permissions",
@@ -78,7 +80,7 @@ export const TAB_PERMISSIONS: Record<Section, { key: PermissionKey; label: strin
     { key: "fleet.maintenance", label: "Manage van maintenance & costs" },
     { key: "reports.view", label: "View fleet reporting" },
   ],
-  Operations: [],
+  Operations: [{ key: "ops.driver_stats", label: "Driver stats & scorecards" }],
   "Human Resources": [],
 };
 
@@ -110,7 +112,7 @@ export const DEMO_TENANT: Tenant = {
   name: "Stratford Delivery Corp",
   slug: "stratford",
   themeColor: "#0E7C5A", // green — deliberately different from the LMA platform brand
-  enabledModules: ["fleet-inspection", "fleet-maintenance"],
+  enabledModules: ["fleet-inspection", "fleet-maintenance", "operations-driver-stats"],
 };
 
 export const DEMO_USERS: PortalUser[] = [
@@ -141,7 +143,7 @@ export interface PortalModule {
   name: string;
   description: string;
   /** Icon key resolved via MODULE_ICONS in app/components/icons.tsx. */
-  icon: "van" | "wrench" | "route" | "users";
+  icon: "van" | "wrench" | "route" | "users" | "chart";
   /** Route within the portal when the module is active. */
   href?: string;
 }
@@ -162,6 +164,14 @@ export const MODULES: PortalModule[] = [
     description: "Log repairs by van, track cost per vehicle over the year.",
     icon: "wrench",
     href: "/portal/fleet/maintenance",
+  },
+  {
+    key: "operations-driver-stats",
+    section: "Operations",
+    name: "Driver Stats",
+    description: "Daily scorecards, stop bonuses, and rankings from your FedEx worksheets.",
+    icon: "chart",
+    href: "/portal/operations/driver-stats",
   },
   {
     key: "operations-dispatch",

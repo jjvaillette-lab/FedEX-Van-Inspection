@@ -271,4 +271,5 @@ export const MODULE_ICONS: Record<string, (p: IconProps) => React.ReactElement> 
   wrench: IconWrench,
   route: IconRoute,
   users: IconUsers,
+  chart: IconChart,
 };
