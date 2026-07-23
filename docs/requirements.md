@@ -21,7 +21,9 @@ Last updated: 2026-07-21 · Owner: Jason Vaillette
 
 **⚠️ Pending user action:** run `supabase/migration-v2.sql` in Supabase SQL editor — until then the app runs on graceful fallbacks (trip types read as "pre", checklist edits & resolve/comments blocked with a clear message).
 
-**Still planned:** daily email digest + instant email/SMS alerts (needs mail/SMS provider), stoplight trends, van maintenance tab + cost analysis, reporting tab, PDF export, real per-user auth (Supabase Auth + RLS), Stripe billing, audit log, multi-location.
+**Also built (2026-07-23):** Van Maintenance & Costs module (log by van w/ mileage/cost/receipts, Cost-by-Van rollup, CSV) — needs migration-v4.sql; Instant alert system (owner-managed email/SMS recipients in Settings, fires on flagged/incomplete submissions; email live once Resend key added, SMS once Twilio added); post-trip cutoff + "Post trip not done" status; Incomplete rename; review center tiles-as-tabs w/ Today default + Yesterday's DVIRs; calendar & driver/van dropdown filters; export options modal; per-driver missed-trip stats; printable DVIR per inspection w/ signature; DVIR legal sign-off + signature capture; DOT-mandated question guard; dark mode; driver device links + Van Check PWA.
+
+**Still planned:** daily email digest (cron), stoplight trends, reporting tab, direct PDF generation, real per-user auth (Supabase Auth + RLS), Stripe billing, audit log, multi-location, AI pre/post photo damage comparison.
 
 ---
 

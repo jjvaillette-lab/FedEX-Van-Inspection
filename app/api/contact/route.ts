@@ -30,10 +30,11 @@ function detailsText(d: ContactDetails): string {
   return parts.join(" · ");
 }
 
-async function sendEmail(subject: string, text: string): Promise<boolean> {
+async function sendEmail(subject: string, text: string): Promise<{ sent: boolean; reason: string }> {
   const key = process.env.RESEND_API_KEY;
   const to = process.env.CONTACT_EMAIL;
-  if (!key || !to) return false;
+  if (!key) return { sent: false, reason: "no_api_key" };
+  if (!to) return { sent: false, reason: "no_contact_email" };
   try {
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
@@ -45,9 +46,11 @@ async function sendEmail(subject: string, text: string): Promise<boolean> {
         text,
       }),
     });
-    return res.ok;
-  } catch {
-    return false;
+    if (res.ok) return { sent: true, reason: "sent" };
+    const body = await res.text().catch(() => "");
+    return { sent: false, reason: `resend_${res.status}: ${body.slice(0, 160)}` };
+  } catch (e) {
+    return { sent: false, reason: `fetch_error: ${e instanceof Error ? e.message.slice(0, 100) : "?"}` };
   }
 }
 
@@ -111,7 +114,7 @@ export async function POST(request: Request) {
     }
   }
 
-  const emailed = await sendEmail(
+  const emailResult = await sendEmail(
     `New lead: ${details.company} (${body.name.trim()})`,
     [
       `Name: ${body.name.trim()}`,
@@ -124,7 +127,7 @@ export async function POST(request: Request) {
       .join("\n")
   );
 
-  return NextResponse.json({ ok: true, emailed });
+  return NextResponse.json({ ok: true, emailed: emailResult.sent, emailReason: emailResult.reason });
 }
 
 export async function GET() {
