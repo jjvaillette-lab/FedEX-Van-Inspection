@@ -245,6 +245,26 @@ export const IconPhone = (p: IconProps) => (
   </Base>
 );
 
+export const IconMoon = (p: IconProps) => (
+  <Base {...p}>
+    <path d="M20.5 14.1A8.5 8.5 0 1 1 9.9 3.5a7 7 0 1 0 10.6 10.6z" />
+  </Base>
+);
+
+export const IconSun = (p: IconProps) => (
+  <Base {...p}>
+    <circle cx="12" cy="12" r="4.5" />
+    <path d="M12 2.5v2.2" />
+    <path d="M12 19.3v2.2" />
+    <path d="M2.5 12h2.2" />
+    <path d="M19.3 12h2.2" />
+    <path d="m5 5 1.6 1.6" />
+    <path d="m17.4 17.4 1.6 1.6" />
+    <path d="m19 5-1.6 1.6" />
+    <path d="m6.6 17.4-1.6 1.6" />
+  </Base>
+);
+
 /** Map used by the module registry (lib/tenant.ts stores icon keys, not emoji). */
 export const MODULE_ICONS: Record<string, (p: IconProps) => React.ReactElement> = {
   van: IconVan,

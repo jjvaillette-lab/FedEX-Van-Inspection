@@ -1,21 +1,41 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/app/components/portal/AuthProvider";
 import BrandLogo from "@/app/components/portal/BrandLogo";
-import { MODULE_ICONS, IconGrid, IconSettings, IconLogout } from "@/app/components/icons";
+import { MODULE_ICONS, IconGrid, IconSettings, IconLogout, IconMoon, IconSun } from "@/app/components/icons";
 import { MODULES, SECTIONS } from "@/lib/tenant";
+
+const THEME_KEY = "lma.theme";
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
   const { ready, user, tenant, logout, hasPermission, canSeeSection } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const [dark, setDark] = useState(false);
 
   useEffect(() => {
     if (ready && !user) router.replace("/login");
   }, [ready, user, router]);
+
+  // Dark mode applies only while inside the portal (DVIR/print and public
+  // pages stay light); the preference is remembered per device.
+  useEffect(() => {
+    setDark(localStorage.getItem(THEME_KEY) === "dark");
+  }, []);
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", dark);
+    return () => document.documentElement.classList.remove("dark");
+  }, [dark]);
+
+  const toggleTheme = () => {
+    setDark((d) => {
+      localStorage.setItem(THEME_KEY, d ? "light" : "dark");
+      return !d;
+    });
+  };
 
   if (!ready || !user) {
     return (
@@ -97,6 +117,13 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           </nav>
 
           <div className="border-t border-slate-100 p-3">
+            <button
+              onClick={toggleTheme}
+              className="flex w-full items-center gap-2.5 rounded-md px-3 py-2 text-[13.5px] text-slate-600 hover:bg-slate-100"
+            >
+              {dark ? <IconSun size={17} /> : <IconMoon size={17} />}
+              {dark ? "Light mode" : "Dark mode"}
+            </button>
             {canSettings && (
               <Link
                 href="/portal/settings"
@@ -129,9 +156,14 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
               <BrandLogo tenant={tenant} size={28} />
               <span className="text-sm font-bold text-slate-900">{tenant.name}</span>
             </div>
-            <button onClick={logout} className="text-xs font-semibold text-slate-400">
-              Log out
-            </button>
+            <div className="flex items-center gap-3">
+              <button onClick={toggleTheme} aria-label="Toggle dark mode" className="text-slate-400">
+                {dark ? <IconSun size={17} /> : <IconMoon size={17} />}
+              </button>
+              <button onClick={logout} className="text-xs font-semibold text-slate-400">
+                Log out
+              </button>
+            </div>
           </header>
 
           <main className="flex-1">{children}</main>
