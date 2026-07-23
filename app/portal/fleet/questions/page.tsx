@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/app/components/portal/AuthProvider";
 import { IconAlert, IconArrowDown, IconArrowUp, IconPlus } from "@/app/components/icons";
-import { DOT_MANDATED_IDS } from "@/lib/questions";
+import { DEFAULT_SETTINGS, DOT_MANDATED_IDS } from "@/lib/questions";
 import type { InspectionSettings, QuestionDef, TripType } from "@/lib/types";
 
 const isDotMandated = (id: string) => (DOT_MANDATED_IDS as readonly string[]).includes(id);
@@ -21,7 +21,7 @@ export default function ChecklistEditor() {
   const canEdit = user?.role === "owner" || hasPermission("inspection.edit_questions");
 
   const [questions, setQuestions] = useState<QuestionDef[]>([]);
-  const [settings, setSettings] = useState<InspectionSettings>({ dotMode: true, interiorPhotos: false });
+  const [settings, setSettings] = useState<InspectionSettings>({ ...DEFAULT_SETTINGS });
   const [persisted, setPersisted] = useState(true);
   const [loading, setLoading] = useState(true);
   const [dirty, setDirty] = useState(false);
@@ -208,6 +208,26 @@ export default function ChecklistEditor() {
             </span>
           </span>
         </label>
+        <div className="flex items-start gap-3 rounded-lg border border-slate-200 bg-white p-4 sm:col-span-2">
+          <input
+            type="time"
+            value={settings.postCutoff || "23:59"}
+            onChange={(e) => {
+              // The cutoff always exists — an emptied field falls back to 11:59 PM.
+              setSettings((s) => ({ ...s, postCutoff: e.target.value || "23:59" }));
+              setDirty(true);
+            }}
+            className="rounded-lg border border-slate-300 px-3 py-2 text-sm tabular-nums outline-none focus:border-slate-500"
+          />
+          <span>
+            <span className="block text-sm font-semibold text-slate-800">Post-trip cutoff</span>
+            <span className="block text-xs text-slate-500">
+              If a van&apos;s post-trip isn&apos;t submitted by this time, the day closes and that
+              van is reported as <strong>&ldquo;Post trip not done&rdquo;</strong> — separate from
+              an incomplete inspection. The next scan starts a fresh day.
+            </span>
+          </span>
+        </div>
       </div>
 
       {loading ? (

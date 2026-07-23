@@ -26,6 +26,12 @@ export interface InspectionSettings {
   dotMode: boolean;
   /** Adds the 3 interior photos to post-trips (off by default). */
   interiorPhotos: boolean;
+  /**
+   * Daily post-trip cutoff ("HH:MM", 24h). A pre-trip whose day passes this
+   * time with no post-trip is reported as "Post trip not done". Always set;
+   * defaults to 23:59.
+   */
+  postCutoff: string;
 }
 
 export interface Driver {

@@ -246,8 +246,8 @@ export default function InspectionPage() {
           <div className="w-full max-w-sm rounded-xl bg-white p-6">
             <h2 className="text-lg font-bold text-slate-900">End this inspection?</h2>
             <p className="mt-2 text-sm text-slate-600">
-              Everything entered so far will be saved, but the inspection will be recorded as a{" "}
-              <strong className="text-red-700">FAILED INSPECTION</strong> for this van.
+              Everything entered so far will be saved, but the inspection will be recorded as an{" "}
+              <strong className="text-red-700">INCOMPLETE INSPECTION</strong> for this van.
             </p>
             <div className="mt-5 grid grid-cols-2 gap-3">
               <button
@@ -598,7 +598,7 @@ export default function InspectionPage() {
                 <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-red-100 text-red-600">
                   <IconXCircle size={44} />
                 </div>
-                <h1 className="mt-4 text-2xl font-extrabold text-red-700">FAILED INSPECTION</h1>
+                <h1 className="mt-4 text-2xl font-extrabold text-red-700">INCOMPLETE INSPECTION</h1>
                 <p className="mt-2 text-slate-600">
                   This {tripLabel.toLowerCase()} was not completed. Everything entered has been
                   recorded and the van is flagged for management review.
