@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { PLATFORM } from "@/lib/brand";
-import { DEMO_USERS } from "@/lib/tenant";
 import { useAuth } from "@/app/components/portal/AuthProvider";
 
 export default function LoginPage() {
@@ -93,23 +92,6 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Quick account fill for the Stratford test company. */}
-          <div className="mt-5 border-t border-slate-100 pt-4">
-            <p className="text-xs font-medium text-slate-400">Stratford Delivery Corp — fill an account</p>
-            <div className="mt-2 flex gap-2">
-              {DEMO_USERS.map((u) => (
-                <button
-                  key={u.id}
-                  type="button"
-                  onClick={() => { setEmail(u.email); setError(null); }}
-                  className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-left text-sm text-slate-600 hover:bg-slate-50"
-                >
-                  <span className="block font-semibold text-slate-800">{u.name}</span>
-                  <span className="block text-xs capitalize text-slate-400">{u.role}</span>
-                </button>
-              ))}
-            </div>
-          </div>
         </div>
 
         <p className="mt-6 text-center text-sm text-white/50">
