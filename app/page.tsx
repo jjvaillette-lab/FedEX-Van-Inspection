@@ -275,7 +275,7 @@ export default function Landing() {
           </p>
 
           <div className="mt-8 grid items-start gap-8 lg:grid-cols-[1.6fr_1fr]">
-            {/* Desktop portal mock */}
+            {/* Portal home mock */}
             <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
               <div className="flex items-center gap-1.5 border-b border-slate-100 bg-slate-50 px-4 py-2.5">
                 <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
@@ -283,42 +283,49 @@ export default function Landing() {
                 <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
                 <span className="ml-3 text-[11px] text-slate-400">portal.lastmileassist.com</span>
               </div>
-              <div className="p-5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-bold text-slate-900">Inspection Review</p>
-                    <p className="text-[11px] text-slate-400">Every pre & post-trip, with photo evidence</p>
+              <div className="flex">
+                {/* Mini sidebar */}
+                <div className="hidden w-40 shrink-0 border-r border-slate-100 p-3 sm:block">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-md text-[9px] font-extrabold text-white" style={{ background: navy }}>AD</span>
+                    <span className="text-[11px] font-bold text-slate-800">Atlas Delivery</span>
                   </div>
-                  <span className="rounded-lg border border-slate-200 px-2.5 py-1 text-[11px] font-semibold text-slate-500">
-                    Export CSV
-                  </span>
+                  <div className="mt-3 space-y-1 text-[10.5px] font-medium">
+                    <div className="rounded px-2 py-1 font-semibold" style={{ background: `${navy}14`, color: navy }}>Overview</div>
+                    <p className="px-2 pt-1 text-[8.5px] font-bold uppercase tracking-wider text-slate-300">Operations</p>
+                    <div className="px-2 py-1 text-slate-500">Dispatch</div>
+                    <p className="px-2 pt-1 text-[8.5px] font-bold uppercase tracking-wider text-slate-300">Fleet</p>
+                    <div className="px-2 py-1 text-slate-500">Vehicle Inspections</div>
+                    <div className="px-2 py-1 text-slate-500">Maintenance &amp; Costs</div>
+                    <p className="px-2 pt-1 text-[8.5px] font-bold uppercase tracking-wider text-slate-300">Human Resources</p>
+                    <div className="px-2 py-1 text-slate-500">Employee Management</div>
+                  </div>
                 </div>
-                <div className="mt-4 grid grid-cols-3 gap-2">
-                  {[
-                    { n: "42", l: "Inspections this week", c: "text-slate-900" },
-                    { n: "2", l: "Open issues", c: "text-amber-600" },
-                    { n: "0", l: "Missing post-trips", c: "text-emerald-600" },
-                  ].map((s) => (
-                    <div key={s.l} className="rounded-lg border border-slate-200 px-3 py-2.5">
-                      <p className={`text-xl font-bold tabular-nums ${s.c}`}>{s.n}</p>
-                      <p className="text-[10px] font-medium text-slate-500">{s.l}</p>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-4 overflow-hidden rounded-lg border border-slate-200 text-[12px]">
-                  {[
-                    { van: "Van 12", driver: "M. Reed", when: "Today · 7:02 AM", trip: "PRE", tripC: "bg-sky-50 text-sky-700", status: "Passed", statusC: "border-emerald-200 bg-emerald-50 text-emerald-700" },
-                    { van: "Van 07", driver: "D. Lopez", when: "Today · 6:54 AM", trip: "PRE", tripC: "bg-sky-50 text-sky-700", status: "1 issue", statusC: "border-amber-200 bg-amber-50 text-amber-800" },
-                    { van: "Van 21", driver: "J. Chen", when: "Yesterday · 6:11 PM", trip: "POST", tripC: "bg-indigo-50 text-indigo-700", status: "Passed", statusC: "border-emerald-200 bg-emerald-50 text-emerald-700" },
-                  ].map((r, i) => (
-                    <div key={r.van} className={`flex items-center gap-3 px-3 py-2.5 ${i > 0 ? "border-t border-slate-100" : ""}`}>
-                      <span className="w-14 font-semibold text-slate-800">{r.van}</span>
-                      <span className="w-16 text-slate-500">{r.driver}</span>
-                      <span className="hidden flex-1 text-slate-400 sm:block">{r.when}</span>
-                      <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${r.tripC}`}>{r.trip}</span>
-                      <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${r.statusC}`}>{r.status}</span>
-                    </div>
-                  ))}
+                {/* Overview cards */}
+                <div className="min-w-0 flex-1 p-4">
+                  <p className="text-[10px] text-slate-400">Welcome back, Alex.</p>
+                  <p className="text-sm font-bold text-slate-900">Atlas Delivery Co</p>
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    {[
+                      { t: "Vehicle Inspections", s: "42 checks this week", icon: IconVan },
+                      { t: "Maintenance & Costs", s: "3 repairs logged", icon: IconWrench },
+                      { t: "Dispatch", s: "14 routes today", icon: IconRoute },
+                      { t: "Employee Management", s: "23 team members", icon: IconUsers },
+                    ].map((c) => (
+                      <div key={c.t} className="rounded-lg border border-slate-200 p-2.5">
+                        <div className="flex items-center justify-between">
+                          <span className="flex h-6 w-6 items-center justify-center rounded-md" style={{ background: `${navy}12`, color: navy }}>
+                            <c.icon size={13} />
+                          </span>
+                          <span className="rounded-full px-1.5 py-0.5 text-[8px] font-bold uppercase" style={{ background: `${navy}14`, color: navy }}>
+                            Active
+                          </span>
+                        </div>
+                        <p className="mt-1.5 text-[11px] font-semibold leading-tight text-slate-800">{c.t}</p>
+                        <p className="text-[9.5px] text-slate-400">{c.s}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
@@ -326,29 +333,150 @@ export default function Landing() {
             {/* Driver app mock */}
             <div className="mx-auto w-full max-w-[240px]">
               <div className="overflow-hidden rounded-[2rem] border-[6px] border-slate-800 bg-white shadow-xl">
-                <div className="px-4 pb-5 pt-4" style={{ background: "#0E7C5A" }}>
+                <div className="px-4 pb-5 pt-4" style={{ background: navy }}>
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-white/70">Driver App</p>
                   <p className="text-sm font-bold text-white">Pre-Trip · Van 12</p>
                 </div>
                 <div className="space-y-2 p-3">
                   {[
-                    { t: "Tires & wheels", ok: true },
-                    { t: "Brakes", ok: true },
-                    { t: "Lights & signals", ok: true },
-                    { t: "Photos: 4 of 4", ok: true },
+                    { t: "Tires & wheels" },
+                    { t: "Brakes" },
+                    { t: "Lights & signals" },
+                    { t: "Photos: 4 of 4" },
                   ].map((row) => (
                     <div key={row.t} className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2">
                       <span className="text-[11px] font-medium text-slate-700">{row.t}</span>
                       <IconCheckCircle size={15} className="text-emerald-500" />
                     </div>
                   ))}
-                  <div className="rounded-lg py-2.5 text-center text-[12px] font-bold text-white" style={{ background: "#0E7C5A" }}>
+                  <div className="rounded-lg py-2.5 text-center text-[12px] font-bold text-white" style={{ background: navy }}>
                     Submit inspection
                   </div>
                 </div>
               </div>
               <p className="mt-3 text-center text-xs text-slate-400">
                 Drivers scan the van&apos;s QR code — no logins, no training curve.
+              </p>
+            </div>
+          </div>
+
+          {/* Fleet drill-down mock */}
+          <div className="mt-8 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
+            <div className="flex items-center gap-1.5 border-b border-slate-100 bg-slate-50 px-4 py-2.5">
+              <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
+              <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
+              <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
+              <span className="ml-3 text-[11px] text-slate-400">portal.lastmileassist.com/fleet</span>
+            </div>
+            <div className="p-4 sm:p-5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <p className="text-[10px] text-slate-400">Portal / Fleet</p>
+                  <p className="text-sm font-bold text-slate-900">Fleet</p>
+                </div>
+                <span className="rounded-lg border border-slate-200 px-2.5 py-1 text-[11px] font-semibold text-slate-500">
+                  Export CSV
+                </span>
+              </div>
+
+              {/* Fleet tabs */}
+              <div className="mt-3 flex gap-1 border-b border-slate-200 text-[11.5px] font-semibold">
+                {["Inspections", "Maintenance", "Vans", "Reports"].map((t, i) => (
+                  <span
+                    key={t}
+                    className={`rounded-t-md px-3 py-1.5 ${i === 0 ? "border-b-2 text-slate-900" : "text-slate-400"}`}
+                    style={i === 0 ? { borderColor: navy, color: navy } : undefined}
+                  >
+                    {t}
+                  </span>
+                ))}
+              </div>
+
+              {/* Sorting / filters */}
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <div className="flex rounded-lg border border-slate-300 p-0.5 text-[10.5px] font-medium">
+                  {["All", "By Date", "By Van", "By Driver"].map((v, i) => (
+                    <span
+                      key={v}
+                      className={`rounded-md px-2.5 py-1 ${i === 2 ? "text-white" : "text-slate-500"}`}
+                      style={i === 2 ? { background: navy } : undefined}
+                    >
+                      {v}
+                    </span>
+                  ))}
+                </div>
+                <span className="rounded-lg border border-slate-300 px-2.5 py-1 text-[10.5px] text-slate-400">
+                  Search van, driver, route…
+                </span>
+                <span className="rounded-lg border border-slate-300 px-2.5 py-1 text-[10.5px] text-slate-500">
+                  All statuses ▾
+                </span>
+              </div>
+
+              {/* Rows */}
+              <div className="mt-3 overflow-hidden rounded-lg border border-slate-200 text-[11.5px]">
+                <div className="flex items-center gap-3 px-3 py-2.5">
+                  <span className="w-14 font-semibold text-slate-800">Van 04</span>
+                  <span className="w-20 text-slate-500">T. Alvarez</span>
+                  <span className="hidden flex-1 text-slate-400 sm:block">Today · 6:48 AM</span>
+                  <span className="rounded bg-sky-50 px-1.5 py-0.5 text-[9.5px] font-bold text-sky-700">PRE</span>
+                  <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[9.5px] font-semibold text-emerald-700">Passed</span>
+                </div>
+
+                {/* Expanded drill-down row */}
+                <div className="border-t border-slate-100">
+                  <div className="flex items-center gap-3 bg-slate-50 px-3 py-2.5">
+                    <span className="w-14 font-semibold text-slate-800">Van 07</span>
+                    <span className="w-20 text-slate-500">D. Lopez</span>
+                    <span className="hidden flex-1 text-slate-400 sm:block">Today · 6:54 AM</span>
+                    <span className="rounded bg-sky-50 px-1.5 py-0.5 text-[9.5px] font-bold text-sky-700">PRE</span>
+                    <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[9.5px] font-semibold text-amber-800">1 issue</span>
+                  </div>
+                  <div className="grid gap-3 border-t border-slate-100 bg-slate-50/60 px-3 py-3 sm:grid-cols-[1fr_1.4fr]">
+                    <div>
+                      <p className="text-[9px] font-bold uppercase tracking-wide text-red-600">Driver-reported issue</p>
+                      <p className="mt-1 rounded border border-red-100 bg-red-50 px-2 py-1.5 text-[11px] text-red-800">
+                        Brakes — soft pedal on startup
+                      </p>
+                      <span className="mt-2 inline-block rounded px-2.5 py-1 text-[10px] font-semibold text-white" style={{ background: navy }}>
+                        Resolve issue
+                      </span>
+                      <p className="mt-1.5 text-[9px] text-slate-400">
+                        Resolutions record who fixed it, when, and the receipt.
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Photos (4) — captured on every check</p>
+                      <div className="mt-1 grid grid-cols-4 gap-1.5">
+                        {[
+                          { l: "Driver Side", s: "/silhouettes/van-driver-side.svg" },
+                          { l: "Back", s: "/silhouettes/van-back.svg" },
+                          { l: "Passenger", s: "/silhouettes/van-passenger-side.svg" },
+                          { l: "Front", s: "/silhouettes/van-front.svg" },
+                        ].map((p) => (
+                          <figure key={p.l}>
+                            <div className="flex h-14 items-center justify-center rounded border border-slate-200 bg-gradient-to-b from-slate-200 to-slate-300 p-1.5">
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={p.s} alt="" className="max-h-full opacity-60" />
+                            </div>
+                            <figcaption className="mt-0.5 text-center text-[8.5px] text-slate-500">{p.l}</figcaption>
+                          </figure>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 border-t border-slate-100 px-3 py-2.5">
+                  <span className="w-14 font-semibold text-slate-800">Van 21</span>
+                  <span className="w-20 text-slate-500">J. Chen</span>
+                  <span className="hidden flex-1 text-slate-400 sm:block">Yesterday · 6:11 PM</span>
+                  <span className="rounded bg-indigo-50 px-1.5 py-0.5 text-[9.5px] font-bold text-indigo-700">POST</span>
+                  <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[9.5px] font-semibold text-emerald-700">Passed</span>
+                </div>
+              </div>
+              <p className="mt-2 text-[10px] text-slate-400">
+                Sort by date, van, or driver — drill into any check for photos, issues, and resolutions.
               </p>
             </div>
           </div>
