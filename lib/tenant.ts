@@ -130,8 +130,8 @@ export const MODULES: PortalModule[] = [
   {
     key: "hr-payroll",
     section: "Human Resources",
-    name: "Payroll & HR",
-    description: "Drivers, onboarding, hours, and payroll.",
+    name: "Employee Management",
+    description: "Driver records, accountability, and team oversight.",
     icon: "users",
   },
 ];
