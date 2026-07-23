@@ -127,7 +127,7 @@ export async function POST(request: Request) {
       .join("\n")
   );
 
-  return NextResponse.json({ ok: true, emailed: emailResult.sent, emailReason: emailResult.reason });
+  return NextResponse.json({ ok: true, emailed: emailResult.sent });
 }
 
 export async function GET() {
