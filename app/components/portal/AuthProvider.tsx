@@ -47,7 +47,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const savedUser = localStorage.getItem(SESSION_KEY);
       if (savedUser) setUser(JSON.parse(savedUser));
       const savedTenant = localStorage.getItem(TENANT_KEY);
-      if (savedTenant) setTenant({ ...DEMO_TENANT, ...JSON.parse(savedTenant) });
+      if (savedTenant) {
+        // The saved override carries white-label branding only — module
+        // entitlements always come from the platform, otherwise a stale
+        // browser copy would keep newly enabled modules "coming soon".
+        setTenant({
+          ...DEMO_TENANT,
+          ...JSON.parse(savedTenant),
+          enabledModules: DEMO_TENANT.enabledModules,
+        });
+      }
     } catch {
       /* ignore corrupt storage */
     }
@@ -113,7 +122,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const updateTenant: AuthValue["updateTenant"] = (patch) => {
     setTenant((prev) => {
       const next = { ...prev, ...patch };
-      localStorage.setItem(TENANT_KEY, JSON.stringify(next));
+      // Persist branding only; never freeze module entitlements into storage.
+      const { enabledModules: _skip, ...persistable } = next;
+      localStorage.setItem(TENANT_KEY, JSON.stringify(persistable));
       return next;
     });
   };
