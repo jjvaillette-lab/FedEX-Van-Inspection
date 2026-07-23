@@ -421,44 +421,65 @@ export default function DriverStatsPage() {
                         <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-slate-400">
                           Daily breakdown · Pay-period bonus to date: {money(periodBonus.get(s.driver) ?? 0)}
                         </p>
-                        <div className="space-y-1.5">
+                        <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
                           {inRange
                             .filter((r) => r.driver === s.driver)
                             .sort((a, b) => b.date.localeCompare(a.date))
                             .map((r) => {
                               const stops = combinedStops(r);
                               const b = dailyBonus(r, settings);
-                              const chips: [string, string][] = [
-                                ["Pkgs Dispatched", r.vscanPkgs.toLocaleString()],
-                                ["Pkgs Delivered", r.actDelPkgs.toLocaleString()],
-                                ["Del Stops", r.actDelStops.toLocaleString()],
-                                ["PU Stops", r.actPuStops.toLocaleString()],
-                                ["Total Stops", stops.toLocaleString()],
-                                ["Stops/Hr", r.onRoadHours > 0 ? (stops / r.onRoadHours).toFixed(1) : "—"],
-                                ["Miles", r.miles.toFixed(0)],
-                                ["Road Hrs", r.onRoadHours.toFixed(1)],
-                                ["Duty Hrs", r.onDutyHours.toFixed(1)],
-                              ];
+                              const delPct = r.vscanPkgs > 0 ? r.actDelPkgs / r.vscanPkgs : null;
+                              const weekday = new Date(`${r.date}T12:00:00`).toLocaleDateString("en-US", { weekday: "short" });
+                              const barColor =
+                                delPct == null ? "#cbd5e1" : delPct >= 0.98 ? "#10b981" : delPct >= 0.93 ? "#f59e0b" : "#ef4444";
                               return (
-                                <div key={r.date} className="flex flex-wrap items-center gap-1.5 rounded border border-slate-200 bg-white px-2.5 py-2">
-                                  <span className="mr-1.5 w-16 text-xs font-bold tabular-nums text-slate-700">
-                                    {displayDate(r.date)}
-                                  </span>
-                                  {chips.map(([label, value]) => (
-                                    <span key={label} className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2 py-1">
-                                      <span className="text-[9.5px] font-semibold uppercase tracking-wide text-slate-400">{label}</span>
-                                      <span className="text-xs font-bold tabular-nums text-slate-800">{value}</span>
+                                <div key={r.date} className="rounded-xl border border-slate-200 bg-white p-3.5">
+                                  <div className="flex items-baseline justify-between">
+                                    <p className="text-sm font-bold text-slate-800">
+                                      {weekday} <span className="tabular-nums text-slate-500">{displayDate(r.date)}</span>
+                                    </p>
+                                    {b > 0 ? (
+                                      <span
+                                        className="rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums"
+                                        style={{ background: `${brand}14`, color: brand }}
+                                      >
+                                        +{money(b)}
+                                      </span>
+                                    ) : (
+                                      <span className="text-[11px] text-slate-300">no bonus</span>
+                                    )}
+                                  </div>
+
+                                  <div className="mt-2.5 flex items-baseline gap-2">
+                                    <span className="text-3xl font-extrabold tabular-nums text-slate-900">{stops}</span>
+                                    <span className="text-xs text-slate-500">
+                                      stops{r.onRoadHours > 0 ? ` · ${(stops / r.onRoadHours).toFixed(1)}/hr` : ""}
                                     </span>
-                                  ))}
-                                  <span
-                                    className="ml-auto inline-flex items-center gap-1.5 rounded-md border px-2 py-1"
-                                    style={b > 0 ? { borderColor: `${brand}55`, background: `${brand}12` } : { borderColor: "#e2e8f0" }}
-                                  >
-                                    <span className="text-[9.5px] font-semibold uppercase tracking-wide text-slate-400">Bonus</span>
-                                    <span className="text-xs font-bold tabular-nums" style={{ color: b > 0 ? brand : "#94a3b8" }}>
-                                      {b > 0 ? `+${money(b)}` : "—"}
-                                    </span>
-                                  </span>
+                                  </div>
+
+                                  <div className="mt-3">
+                                    <div className="flex items-baseline justify-between text-[11px]">
+                                      <span className="font-semibold text-slate-500">Delivered</span>
+                                      <span className="tabular-nums text-slate-600">
+                                        {r.actDelPkgs.toLocaleString()} of {r.vscanPkgs.toLocaleString()}
+                                        {delPct != null ? ` · ${(delPct * 100).toFixed(1)}%` : ""}
+                                      </span>
+                                    </div>
+                                    <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-100">
+                                      <div
+                                        className="h-full rounded-full"
+                                        style={{ width: `${Math.min((delPct ?? 0) * 100, 100)}%`, background: barColor }}
+                                      />
+                                    </div>
+                                  </div>
+
+                                  <p className="mt-3 text-[11px] text-slate-400">
+                                    {r.actPuStops > 0 ? `${r.actPuStops} pickup${r.actPuStops === 1 ? "" : "s"} · ` : ""}
+                                    {r.miles > 0 ? `${r.miles.toFixed(0)} mi · ` : ""}
+                                    {r.onRoadHours > 0 || r.onDutyHours > 0
+                                      ? `${r.onRoadHours.toFixed(1)}h on road of ${r.onDutyHours.toFixed(1)}h on duty`
+                                      : "hours not recorded"}
+                                  </p>
                                 </div>
                               );
                             })}
