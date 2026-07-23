@@ -110,7 +110,7 @@ export const DEMO_TENANT: Tenant = {
   name: "Stratford Delivery Corp",
   slug: "stratford",
   themeColor: "#0E7C5A", // green — deliberately different from the LMA platform brand
-  enabledModules: ["fleet-inspection"],
+  enabledModules: ["fleet-inspection", "fleet-maintenance"],
 };
 
 export const DEMO_USERS: PortalUser[] = [
@@ -161,6 +161,7 @@ export const MODULES: PortalModule[] = [
     name: "Maintenance & Costs",
     description: "Log repairs by van, track cost per vehicle over the year.",
     icon: "wrench",
+    href: "/portal/fleet/maintenance",
   },
   {
     key: "operations-dispatch",

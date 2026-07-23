@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { saveInspection, listInspections } from "@/lib/storage";
+import { notifyInspection } from "@/lib/notify";
 import type { Inspection } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -49,5 +50,12 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
+
+  // Instant alerts for anything that needs management's eyes; never blocks
+  // the driver's submission.
+  if (inspection.status !== "passed") {
+    await notifyInspection(inspection);
+  }
+
   return NextResponse.json({ inspection }, { status: 201 });
 }

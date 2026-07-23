@@ -208,6 +208,213 @@ function MessagesSection() {
 }
 
 /* ------------------------------------------------------------------ */
+/* Instant alerts                                                      */
+/* ------------------------------------------------------------------ */
+
+interface AlertSettingsShape {
+  emailEnabled: boolean;
+  emails: string[];
+  smsEnabled: boolean;
+  phones: string[];
+}
+
+function RecipientList({
+  values,
+  onChange,
+  placeholder,
+  brand,
+  inputMode,
+}: {
+  values: string[];
+  onChange: (v: string[]) => void;
+  placeholder: string;
+  brand: string;
+  inputMode?: "email" | "tel";
+}) {
+  const [draft, setDraft] = useState("");
+  const add = () => {
+    const v = draft.trim();
+    if (!v || values.includes(v)) return;
+    onChange([...values, v]);
+    setDraft("");
+  };
+  return (
+    <div>
+      <div className="flex flex-wrap gap-1.5">
+        {values.map((v) => (
+          <span key={v} className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-700">
+            {v}
+            <button onClick={() => onChange(values.filter((x) => x !== v))} className="text-slate-400 hover:text-red-600">
+              ✕
+            </button>
+          </span>
+        ))}
+        {values.length === 0 && <span className="text-xs text-slate-400">No recipients yet.</span>}
+      </div>
+      <div className="mt-2 flex gap-2">
+        <input
+          type={inputMode === "email" ? "email" : "tel"}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && add()}
+          placeholder={placeholder}
+          className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500"
+        />
+        <button
+          onClick={add}
+          disabled={!draft.trim()}
+          className="rounded-lg px-3.5 py-2 text-sm font-semibold text-white disabled:opacity-40"
+          style={{ background: brand }}
+        >
+          Add
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function AlertsSection({ brand }: { brand: string }) {
+  const [settings, setSettings] = useState<AlertSettingsShape>({
+    emailEnabled: false,
+    emails: [],
+    smsEnabled: false,
+    phones: [],
+  });
+  const [emailConfigured, setEmailConfigured] = useState(true);
+  const [smsConfigured, setSmsConfigured] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [dirty, setDirty] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/alerts")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.settings) setSettings(d.settings);
+        setEmailConfigured(d.emailConfigured !== false);
+        setSmsConfigured(d.smsConfigured !== false);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const patch = (p: Partial<AlertSettingsShape>) => {
+    setSettings((s) => ({ ...s, ...p }));
+    setDirty(true);
+    setMessage(null);
+  };
+
+  const save = async () => {
+    setSaving(true);
+    setMessage(null);
+    try {
+      const res = await fetch("/api/alerts", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ settings }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Save failed");
+      setDirty(false);
+      setMessage({ ok: true, text: "Saved — alerts fire the moment a check comes in flagged or incomplete." });
+    } catch (e) {
+      setMessage({ ok: false, text: e instanceof Error ? e.message : "Save failed" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-bold text-slate-900">Instant alerts</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Get notified the moment an inspection comes in with issues, incomplete, or not done.
+          </p>
+        </div>
+        <button
+          onClick={save}
+          disabled={saving || !dirty}
+          className="rounded-lg px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-40"
+          style={{ background: brand }}
+        >
+          {saving ? "Saving…" : dirty ? "Save changes" : "Saved"}
+        </button>
+      </div>
+
+      {message && (
+        <p className={`mt-3 rounded-lg border px-4 py-2.5 text-sm ${message.ok ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-red-200 bg-red-50 text-red-700"}`}>
+          {message.text}
+        </p>
+      )}
+
+      {loading ? (
+        <p className="mt-4 text-sm text-slate-400">Loading…</p>
+      ) : (
+        <div className="mt-5 grid gap-5 lg:grid-cols-2">
+          <div className="rounded-xl border border-slate-200 p-4">
+            <label className="flex cursor-pointer items-center gap-2.5">
+              <input
+                type="checkbox"
+                checked={settings.emailEnabled}
+                onChange={(e) => patch({ emailEnabled: e.target.checked })}
+                className="h-4 w-4"
+                style={{ accentColor: brand }}
+              />
+              <span className="text-sm font-semibold text-slate-800">Email alerts</span>
+            </label>
+            {!emailConfigured && (
+              <p className="mt-2 rounded bg-amber-50 px-2.5 py-1.5 text-xs text-amber-800">
+                Email delivery isn&apos;t connected yet (needs the Resend key). Recipients save now
+                and start receiving as soon as it&apos;s connected.
+              </p>
+            )}
+            <div className="mt-3">
+              <RecipientList
+                values={settings.emails}
+                onChange={(emails) => patch({ emails })}
+                placeholder="name@company.com"
+                inputMode="email"
+                brand={brand}
+              />
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-slate-200 p-4">
+            <label className="flex cursor-pointer items-center gap-2.5">
+              <input
+                type="checkbox"
+                checked={settings.smsEnabled}
+                onChange={(e) => patch({ smsEnabled: e.target.checked })}
+                className="h-4 w-4"
+                style={{ accentColor: brand }}
+              />
+              <span className="text-sm font-semibold text-slate-800">Text (SMS) alerts</span>
+            </label>
+            {!smsConfigured && (
+              <p className="mt-2 rounded bg-amber-50 px-2.5 py-1.5 text-xs text-amber-800">
+                Texting isn&apos;t connected yet (needs a Twilio account). Numbers save now and
+                start receiving as soon as it&apos;s connected.
+              </p>
+            )}
+            <div className="mt-3">
+              <RecipientList
+                values={settings.phones}
+                onChange={(phones) => patch({ phones })}
+                placeholder="+1 555 123 4567"
+                inputMode="tel"
+                brand={brand}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* Managers & access                                                   */
 /* ------------------------------------------------------------------ */
 
@@ -650,6 +857,8 @@ export default function SettingsPage() {
       {isOwner && <DriverDevicesSection brand={tenant.themeColor} />}
 
       {canUsers && <ManagersSection brand={tenant.themeColor} />}
+
+      {isOwner && <AlertsSection brand={tenant.themeColor} />}
 
       {isOwner && <MessagesSection />}
     </div>

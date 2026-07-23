@@ -8,6 +8,7 @@ import {
   IconFile,
   IconPhone,
   IconQr,
+  IconWrench,
 } from "@/app/components/icons";
 
 export default function FleetInspectionModule() {
@@ -29,6 +30,13 @@ export default function FleetInspectionModule() {
       href: "/portal/fleet/inspections",
       icon: IconChart,
       show: hasPermission("inspection.review"),
+    },
+    {
+      title: "Maintenance & Costs",
+      desc: "Log repairs by van — mileage, cost, receipts — and see what each vehicle costs you.",
+      href: "/portal/fleet/maintenance",
+      icon: IconWrench,
+      show: isOwner || hasPermission("fleet.maintenance"),
     },
     {
       title: "Inspection Checklist",

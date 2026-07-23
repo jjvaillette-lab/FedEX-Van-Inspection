@@ -98,6 +98,29 @@ export interface InspectionComment {
   disagreement?: boolean;
 }
 
+/** A maintenance/repair entry in a van's folder. */
+export interface MaintenanceRecord {
+  id: string;
+  createdAt: string;
+  vanId: string;
+  /** Service date, YYYY-MM-DD. */
+  date: string;
+  mileage?: number | null;
+  category: string;
+  description: string;
+  cost: number;
+  receiptUrl?: string | null;
+  createdBy?: string | null;
+}
+
+/** Instant-alert configuration (owner-managed in Settings). */
+export interface AlertSettings {
+  emailEnabled: boolean;
+  emails: string[];
+  smsEnabled: boolean;
+  phones: string[];
+}
+
 export interface Inspection {
   id: string;
   createdAt: string; // ISO
