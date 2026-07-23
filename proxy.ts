@@ -13,7 +13,7 @@ import { DRIVER_COOKIE, GATE_COOKIE, verifyDriver, verifyGate } from "@/lib/gate
  *  - Team (GATE_COOKIE): everything.
  */
 
-function isPublic(pathname: string): boolean {
+function isPublic(pathname: string, method: string): boolean {
   return (
     pathname === "/" ||
     pathname === "/login" ||
@@ -21,7 +21,8 @@ function isPublic(pathname: string): boolean {
     pathname === "/driver" ||
     pathname.startsWith("/api/gate") ||
     pathname.startsWith("/api/driver-gate") ||
-    pathname.startsWith("/api/contact")
+    // Visitors may SUBMIT the contact form; reading messages stays team-only.
+    (pathname.startsWith("/api/contact") && method === "POST")
   );
 }
 
@@ -37,7 +38,7 @@ function isDriverAllowed(pathname: string): boolean {
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  if (isPublic(pathname)) return NextResponse.next();
+  if (isPublic(pathname, request.method)) return NextResponse.next();
 
   const team = await verifyGate(request.cookies.get(GATE_COOKIE)?.value);
   if (team) return NextResponse.next();

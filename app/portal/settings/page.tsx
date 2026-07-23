@@ -119,6 +119,95 @@ function DriverDevicesSection({ brand }: { brand: string }) {
 }
 
 /* ------------------------------------------------------------------ */
+/* Contact-form inbox                                                  */
+/* ------------------------------------------------------------------ */
+
+interface ContactMessage {
+  id: string;
+  created_at: string;
+  name: string;
+  email: string | null;
+  message: string;
+  details?: {
+    company?: string;
+    routes?: string;
+    employees?: string;
+    city?: string;
+    state?: string;
+  } | null;
+}
+
+function MessagesSection() {
+  const [messages, setMessages] = useState<ContactMessage[]>([]);
+  const [emailConfigured, setEmailConfigured] = useState(true);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/contact")
+      .then((r) => r.json())
+      .then((d) => {
+        setMessages(d.messages ?? []);
+        setEmailConfigured(d.emailConfigured !== false);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  return (
+    <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6">
+      <h2 className="text-lg font-bold text-slate-900">Contact form messages</h2>
+      <p className="mt-1 text-sm text-slate-500">
+        Every submission from the public Contact page lands here
+        {emailConfigured ? " and is emailed to you." : "."}
+      </p>
+      {!emailConfigured && (
+        <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs text-amber-800">
+          Email delivery isn&apos;t connected yet (RESEND_API_KEY + CONTACT_EMAIL). Messages are
+          stored here in the meantime.
+        </p>
+      )}
+      {loading ? (
+        <p className="mt-4 text-sm text-slate-400">Loading…</p>
+      ) : messages.length === 0 ? (
+        <p className="mt-4 text-sm text-slate-400">No messages yet.</p>
+      ) : (
+        <div className="mt-4 space-y-3">
+          {messages.map((m) => {
+            const d = m.details ?? {};
+            const facts = [
+              d.company,
+              d.routes && `${d.routes} routes/day`,
+              d.employees && `${d.employees} employees`,
+              [d.city, d.state].filter(Boolean).join(", "),
+            ].filter(Boolean);
+            return (
+              <div key={m.id} className="rounded-lg border border-slate-200 p-4">
+                <div className="flex flex-wrap items-baseline justify-between gap-2">
+                  <p className="font-semibold text-slate-800">
+                    {m.name}
+                    {m.email && (
+                      <a href={`mailto:${m.email}`} className="ml-2 text-sm font-medium text-slate-400 hover:text-slate-700">
+                        {m.email}
+                      </a>
+                    )}
+                  </p>
+                  <span className="text-xs tabular-nums text-slate-400">
+                    {new Date(m.created_at).toLocaleString()}
+                  </span>
+                </div>
+                {facts.length > 0 && (
+                  <p className="mt-1 text-xs font-medium text-slate-500">{facts.join(" · ")}</p>
+                )}
+                <p className="mt-2 whitespace-pre-line text-sm text-slate-600">{m.message}</p>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /* Managers & access                                                   */
 /* ------------------------------------------------------------------ */
 
@@ -561,6 +650,8 @@ export default function SettingsPage() {
       {isOwner && <DriverDevicesSection brand={tenant.themeColor} />}
 
       {canUsers && <ManagersSection brand={tenant.themeColor} />}
+
+      {isOwner && <MessagesSection />}
     </div>
   );
 }
