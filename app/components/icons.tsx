@@ -268,6 +268,7 @@ export const IconSun = (p: IconProps) => (
 /** Map used by the module registry (lib/tenant.ts stores icon keys, not emoji). */
 export const MODULE_ICONS: Record<string, (p: IconProps) => React.ReactElement> = {
   van: IconVan,
+  clipboard: IconClipboard,
   wrench: IconWrench,
   route: IconRoute,
   users: IconUsers,

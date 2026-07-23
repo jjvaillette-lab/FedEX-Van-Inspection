@@ -8,6 +8,7 @@
 
 export type ModuleKey =
   | "fleet-inspection"
+  | "fleet-van-list"
   | "fleet-maintenance"
   | "operations-driver-stats"
   | "operations-dispatch"
@@ -35,6 +36,7 @@ export const PERMISSIONS = {
   "inspection.resolve": "Resolve / acknowledge issues",
   "inspection.edit_questions": "Edit the inspection checklist",
   "inspection.export": "Export inspection reports (PDF/CSV)",
+  "fleet.van_list": "Manage the van list (details, activate / inactivate)",
   "fleet.maintenance": "Manage van maintenance & costs",
   "ops.driver_stats": "View & manage driver stats",
   "reports.view": "View the reporting tab",
@@ -77,6 +79,7 @@ export const TAB_PERMISSIONS: Record<Section, { key: PermissionKey; label: strin
     { key: "inspection.resolve", label: "Resolve / acknowledge issues" },
     { key: "inspection.edit_questions", label: "Edit the inspection checklist" },
     { key: "inspection.export", label: "Export reports (CSV)" },
+    { key: "fleet.van_list", label: "Manage the van list (activate / inactivate)" },
     { key: "fleet.maintenance", label: "Manage van maintenance & costs" },
     { key: "reports.view", label: "View fleet reporting" },
   ],
@@ -112,7 +115,7 @@ export const DEMO_TENANT: Tenant = {
   name: "Stratford Delivery Corp",
   slug: "stratford",
   themeColor: "#0E7C5A", // green — deliberately different from the LMA platform brand
-  enabledModules: ["fleet-inspection", "fleet-maintenance", "operations-driver-stats"],
+  enabledModules: ["fleet-inspection", "fleet-van-list", "fleet-maintenance", "operations-driver-stats"],
 };
 
 export const DEMO_USERS: PortalUser[] = [
@@ -143,7 +146,7 @@ export interface PortalModule {
   name: string;
   description: string;
   /** Icon key resolved via MODULE_ICONS in app/components/icons.tsx. */
-  icon: "van" | "wrench" | "route" | "users" | "chart";
+  icon: "van" | "clipboard" | "wrench" | "route" | "users" | "chart";
   /** Route within the portal when the module is active. */
   href?: string;
 }
@@ -154,8 +157,16 @@ export const MODULES: PortalModule[] = [
     section: "Fleet",
     name: "Vehicle Inspections",
     description: "Pre & post-trip DOT safety checks, photos, and flagged vans.",
-    icon: "van",
+    icon: "clipboard",
     href: "/portal/fleet",
+  },
+  {
+    key: "fleet-van-list",
+    section: "Fleet",
+    name: "Van List",
+    description: "Active & inactive vans — details, DVIR mileage, and service status.",
+    icon: "van",
+    href: "/portal/fleet/van-list",
   },
   {
     key: "fleet-maintenance",

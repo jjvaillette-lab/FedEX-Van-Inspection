@@ -74,7 +74,13 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
               <IconGrid size={17} /> Overview
             </Link>
 
-            {SECTIONS.filter(canSeeSection).map((section) => {
+            {(() => {
+              // Highlight only the most specific module for the current path, so
+              // e.g. /portal/fleet/van-list lights "Van List", not "Vehicle Inspections".
+              const activeKey = MODULES.filter(
+                (m) => m.href && (pathname === m.href || pathname.startsWith(m.href + "/"))
+              ).sort((a, b) => (b.href?.length ?? 0) - (a.href?.length ?? 0))[0]?.key;
+              return SECTIONS.filter(canSeeSection).map((section) => {
               const mods = MODULES.filter((m) => m.section === section);
               return (
                 <div key={section} className="mt-5">
@@ -84,7 +90,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                   <div className="space-y-0.5">
                     {mods.map((m) => {
                       const enabled = tenant.enabledModules.includes(m.key);
-                      const active = !!m.href && pathname.startsWith(m.href);
+                      const active = m.key === activeKey;
                       const Ic = MODULE_ICONS[m.icon];
                       const inner = (
                         <>
@@ -113,7 +119,8 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                   </div>
                 </div>
               );
-            })}
+              });
+            })()}
           </nav>
 
           <div className="border-t border-slate-100 p-3">

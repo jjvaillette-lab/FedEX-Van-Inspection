@@ -14,7 +14,11 @@ const dayFmt = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString("en-U
 export default function VanListPage() {
   const { user, tenant, hasPermission } = useAuth();
   const brand = tenant.themeColor;
-  const canManage = user?.role === "owner" || !!user?.admin || hasPermission("fleet.maintenance");
+  const canManage =
+    user?.role === "owner" ||
+    !!user?.admin ||
+    hasPermission("fleet.van_list") ||
+    hasPermission("fleet.maintenance");
 
   const [vans, setVans] = useState<VanRecord[]>([]);
   const [persisted, setPersisted] = useState(true);
