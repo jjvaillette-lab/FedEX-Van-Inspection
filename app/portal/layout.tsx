@@ -9,7 +9,7 @@ import { MODULE_ICONS, IconGrid, IconSettings, IconLogout } from "@/app/componen
 import { MODULES, SECTIONS } from "@/lib/tenant";
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
-  const { ready, user, tenant, logout, hasPermission } = useAuth();
+  const { ready, user, tenant, logout, hasPermission, canSeeSection } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -54,7 +54,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
               <IconGrid size={17} /> Overview
             </Link>
 
-            {SECTIONS.map((section) => {
+            {SECTIONS.filter(canSeeSection).map((section) => {
               const mods = MODULES.filter((m) => m.section === section);
               return (
                 <div key={section} className="mt-5">

@@ -32,7 +32,7 @@ export default function LoginPage() {
         return;
       }
       // Establish the account/role for this session.
-      const result = login(email);
+      const result = await login(email);
       if (!result.ok) {
         setError(result.error ?? "No account found for that email.");
         return;

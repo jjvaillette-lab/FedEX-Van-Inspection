@@ -4,19 +4,20 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import {
   DEMO_TENANT,
   DEMO_USERS,
+  type ManagerRecord,
   type PermissionKey,
   type PortalUser,
+  type Section,
   type Tenant,
 } from "@/lib/tenant";
 
 /**
  * INTERIM auth + tenant context.
  *
- * Holds the signed-in user and the current customer's white-label branding in
- * the browser (localStorage) so the whole portal is clickable today without a
- * backend. In production this is replaced by Supabase Auth + a tenants table;
- * the hook surface (user, tenant, login, logout, hasPermission, updateTenant)
- * stays the same so pages don't change.
+ * The signed-in user and white-label branding live in localStorage so the
+ * portal works end-to-end today. Owner sign-in matches the demo owner;
+ * manager sign-in matches the owner-managed list in /api/managers. Replaced
+ * by Supabase Auth in the production phase — the hook surface stays the same.
  */
 
 const SESSION_KEY = "lma.session.user";
@@ -26,9 +27,11 @@ interface AuthValue {
   ready: boolean;
   user: PortalUser | null;
   tenant: Tenant;
-  login: (email: string) => { ok: boolean; error?: string };
+  login: (email: string) => Promise<{ ok: boolean; error?: string }>;
   logout: () => void;
   hasPermission: (key: PermissionKey) => boolean;
+  /** Whether the signed-in user may open a portal tab (section). */
+  canSeeSection: (section: Section) => boolean;
   updateTenant: (patch: Partial<Tenant>) => void;
 }
 
@@ -51,14 +54,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setReady(true);
   }, []);
 
-  const login: AuthValue["login"] = (email) => {
-    const match = DEMO_USERS.find(
-      (u) => u.email.toLowerCase() === email.trim().toLowerCase()
-    );
-    if (!match) return { ok: false, error: "No account found for that email." };
-    setUser(match);
-    localStorage.setItem(SESSION_KEY, JSON.stringify(match));
-    return { ok: true };
+  const establish = (u: PortalUser) => {
+    setUser(u);
+    localStorage.setItem(SESSION_KEY, JSON.stringify(u));
+  };
+
+  const login: AuthValue["login"] = async (email) => {
+    const e = email.trim().toLowerCase();
+
+    const owner = DEMO_USERS.find((u) => u.role === "owner" && u.email.toLowerCase() === e);
+    if (owner) {
+      establish(owner);
+      return { ok: true };
+    }
+
+    try {
+      const res = await fetch("/api/managers");
+      const data = await res.json();
+      const match = ((data.managers ?? []) as ManagerRecord[]).find(
+        (m) => m.email.trim().toLowerCase() === e
+      );
+      if (match) {
+        establish({
+          id: match.id,
+          name: match.name,
+          email: match.email,
+          role: "manager",
+          tenantId: DEMO_TENANT.id,
+          permissions: match.permissions,
+          admin: match.admin,
+          tabs: match.tabs,
+        });
+        return { ok: true };
+      }
+    } catch {
+      /* fall through */
+    }
+    return { ok: false, error: "No account found for that email." };
   };
 
   const logout = () => {
@@ -68,8 +100,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const hasPermission: AuthValue["hasPermission"] = (key) => {
     if (!user) return false;
-    if (user.role === "owner") return true;
+    if (user.role === "owner" || user.admin) return true;
     return user.permissions.includes(key);
+  };
+
+  const canSeeSection: AuthValue["canSeeSection"] = (section) => {
+    if (!user) return false;
+    if (user.role === "owner" || user.admin) return true;
+    return (user.tabs ?? []).includes(section);
   };
 
   const updateTenant: AuthValue["updateTenant"] = (patch) => {
@@ -81,8 +119,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const value = useMemo<AuthValue>(
-    () => ({ ready, user, tenant, login, logout, hasPermission, updateTenant }),
-    [ready, user, tenant]
+    () => ({ ready, user, tenant, login, logout, hasPermission, canSeeSection, updateTenant }),
+    [ready, user, tenant] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

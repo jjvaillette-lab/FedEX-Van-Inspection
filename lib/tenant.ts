@@ -59,7 +59,49 @@ export interface PortalUser {
   tenantId: string;
   /** Granted permissions (owners implicitly have all — see hasPermission). */
   permissions: PermissionKey[];
+  /** Admin managers see everything and act exactly like an owner. */
+  admin?: boolean;
+  /** Portal tabs this manager may open (owners/admins see all). */
+  tabs?: Section[];
 }
+
+/**
+ * Per-tab security controls shown when a manager is authorized for that tab.
+ * Tabs with no controls yet gain them as their modules are built.
+ */
+export const TAB_PERMISSIONS: Record<Section, { key: PermissionKey; label: string }[]> = {
+  Fleet: [
+    { key: "inspection.review", label: "Review inspections & flagged vans" },
+    { key: "inspection.resolve", label: "Resolve / acknowledge issues" },
+    { key: "inspection.edit_questions", label: "Edit the inspection checklist" },
+    { key: "inspection.export", label: "Export reports (CSV)" },
+    { key: "fleet.maintenance", label: "Manage van maintenance & costs" },
+    { key: "reports.view", label: "View fleet reporting" },
+  ],
+  Operations: [],
+  "Human Resources": [],
+};
+
+/** A manager account as stored/edited by the owner in Settings. */
+export interface ManagerRecord {
+  id: string;
+  name: string;
+  email: string;
+  admin: boolean;
+  tabs: Section[];
+  permissions: PermissionKey[];
+}
+
+export const DEFAULT_MANAGERS: ManagerRecord[] = [
+  {
+    id: "u_manager",
+    name: "Dana Lopez",
+    email: "manager@stratford.test",
+    admin: false,
+    tabs: ["Fleet"],
+    permissions: ["inspection.review", "inspection.resolve", "reports.view"],
+  },
+];
 
 /* ---- Seeded demo data (test customer) ---- */
 

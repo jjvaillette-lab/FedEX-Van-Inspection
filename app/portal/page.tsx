@@ -6,7 +6,7 @@ import { MODULE_ICONS, IconChevronRight } from "@/app/components/icons";
 import { MODULES, SECTIONS } from "@/lib/tenant";
 
 export default function PortalOverview() {
-  const { user, tenant } = useAuth();
+  const { user, tenant, canSeeSection } = useAuth();
   const brand = tenant.themeColor;
   const firstName = user?.name.split(" ")[0] ?? "there";
 
@@ -17,7 +17,7 @@ export default function PortalOverview() {
         {tenant.name}
       </h1>
 
-      {SECTIONS.map((section) => {
+      {SECTIONS.filter(canSeeSection).map((section) => {
         const mods = MODULES.filter((m) => m.section === section);
         return (
           <div key={section} className="mt-8">
