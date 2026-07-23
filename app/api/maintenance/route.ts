@@ -51,9 +51,10 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as Partial<MaintenanceRecord> & {
     receiptDataUrl?: string;
   };
-  if (!body.vanId?.trim() || !body.date || !body.description?.trim()) {
+  // Minimum required entry: the van, the date performed, and the dollar amount.
+  if (!body.vanId?.trim() || !body.date || body.cost == null || body.cost === ("" as unknown)) {
     return NextResponse.json(
-      { error: "Van, date, and a description are required." },
+      { error: "Van, date, and a dollar amount are required." },
       { status: 400 }
     );
   }
@@ -80,7 +81,7 @@ export async function POST(request: Request) {
       date: body.date,
       mileage: body.mileage ?? null,
       category: body.category?.trim() || "Repair",
-      description: body.description.trim(),
+      description: body.description?.trim() || "—",
       cost: Number(body.cost) || 0,
       receipt_url: receiptUrl,
       created_by: body.createdBy ?? null,

@@ -18,6 +18,7 @@ interface QuestionRow {
   dot_specific: boolean;
   enabled: boolean;
   sort_order: number;
+  auto_inactive?: boolean;
 }
 
 function rowToDef(r: QuestionRow): QuestionDef {
@@ -30,6 +31,8 @@ function rowToDef(r: QuestionRow): QuestionDef {
     input: (r.input_type as QuestionDef["input"]) || "check",
     dotSpecific: r.dot_specific,
     enabled: r.enabled,
+    // Pre-migration rows have no column: default safety checks to grounding.
+    autoInactive: r.auto_inactive ?? r.input_type === "check",
     sortOrder: r.sort_order,
   };
 }
@@ -44,6 +47,7 @@ function defToRow(q: QuestionDef): QuestionRow {
     input_type: q.input,
     dot_specific: q.dotSpecific,
     enabled: q.enabled,
+    auto_inactive: q.autoInactive ?? q.input === "check",
     sort_order: q.sortOrder,
   };
 }
@@ -87,8 +91,8 @@ export async function saveQuestions(questions: QuestionDef[]): Promise<void> {
   const { error } = await supabase.from("questions").upsert(questions.map(defToRow));
   if (error) {
     throw new Error(
-      /relation|schema cache/i.test(error.message)
-        ? "Database update required: run supabase/migration-v2.sql in the Supabase SQL editor."
+      /relation|schema cache|column/i.test(error.message)
+        ? "Database update required: run supabase/migration-v6.sql in the Supabase SQL editor."
         : `Save failed: ${error.message}`
     );
   }

@@ -18,7 +18,29 @@ export interface QuestionDef {
   dotSpecific: boolean;
   /** Owner "hide question" toggle — disabled questions never reach drivers. */
   enabled: boolean;
+  /** An "issue" on this question automatically grounds the van (moves it to
+   *  Inactive) until an owner reactivates it. Defaults on for safety checks. */
+  autoInactive?: boolean;
   sortOrder: number;
+}
+
+/** A van in the fleet registry (info card + service status). */
+export interface VanRecord {
+  id: string;
+  vin?: string | null;
+  make?: string | null;
+  model?: string | null;
+  year?: string | null;
+  plate?: string | null;
+  active: boolean;
+  statusReason?: string | null;
+  statusChangedAt?: string | null;
+  /** True when the van appears in DVIRs/maintenance but has no registry row yet. */
+  unregistered?: boolean;
+  /** Latest mileage reported on a DVIR, with its date. */
+  mileage?: number | null;
+  mileageAsOf?: string | null;
+  lastDvir?: string | null;
 }
 
 export interface InspectionSettings {

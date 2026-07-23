@@ -1,7 +1,37 @@
 import { NextResponse } from "next/server";
 import { saveInspection, listInspections } from "@/lib/storage";
 import { notifyInspection } from "@/lib/notify";
+import { loadAllQuestions } from "@/lib/questionStore";
+import { getSupabase } from "@/lib/supabase";
 import type { Inspection } from "@/lib/types";
+
+/**
+ * DVIR auto-grounding: an "issue" on any question flagged auto-inactive moves
+ * the van to the Inactive list until an owner reactivates it. Never blocks
+ * the driver's submission.
+ */
+async function autoGroundVan(inspection: Inspection): Promise<void> {
+  try {
+    const issues = inspection.answers.filter((a) => a.value === "issue");
+    if (issues.length === 0) return;
+    const { questions } = await loadAllQuestions();
+    const grounding = issues
+      .map((a) => questions.find((q) => q.id === a.questionId))
+      .filter((q) => q && (q.autoInactive ?? q.input === "check"));
+    if (grounding.length === 0) return;
+    const supabase = getSupabase();
+    if (!supabase) return;
+    const labels = grounding.map((q) => q!.category).filter((v, i, arr) => arr.indexOf(v) === i);
+    await supabase.from("vans").upsert({
+      id: inspection.vanId,
+      active: false,
+      status_reason: `Auto — DVIR safety issue: ${labels.join(", ")} (${inspection.driver.name ?? inspection.driver.raw}, ${new Date(inspection.createdAt).toLocaleDateString("en-US")})`,
+      status_changed_at: new Date().toISOString(),
+    });
+  } catch {
+    /* grounding must never break a submission */
+  }
+}
 
 export const runtime = "nodejs";
 
@@ -51,10 +81,9 @@ export async function POST(request: Request) {
     );
   }
 
-  // Instant alerts for anything that needs management's eyes; never blocks
-  // the driver's submission.
+  // Instant alerts + DVIR auto-grounding; never blocks the driver's submission.
   if (inspection.status !== "passed") {
-    await notifyInspection(inspection);
+    await Promise.all([notifyInspection(inspection), autoGroundVan(inspection)]);
   }
 
   return NextResponse.json({ inspection }, { status: 201 });

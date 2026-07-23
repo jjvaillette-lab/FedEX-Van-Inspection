@@ -320,6 +320,23 @@ export default function ChecklistEditor() {
                   )}
                   <button
                     onClick={() =>
+                      mutate((qs) =>
+                        qs.map((x) =>
+                          x.id === q.id ? { ...x, autoInactive: !(x.autoInactive ?? x.input === "check") } : x
+                        )
+                      )
+                    }
+                    title="When ON, an Issue on this question automatically moves the van to the Inactive list until an owner reactivates it"
+                    className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase ${
+                      (q.autoInactive ?? q.input === "check")
+                        ? "bg-rose-600 text-white"
+                        : "bg-slate-100 text-slate-400"
+                    }`}
+                  >
+                    Grounds van
+                  </button>
+                  <button
+                    onClick={() =>
                       mutate((qs) => qs.map((x) => (x.id === q.id ? { ...x, dotSpecific: !x.dotSpecific } : x)))
                     }
                     title="DOT-specific questions hide automatically in Non-DOT mode"

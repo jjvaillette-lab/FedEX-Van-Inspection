@@ -8,6 +8,7 @@ import {
   IconFile,
   IconPhone,
   IconQr,
+  IconVan,
   IconWrench,
 } from "@/app/components/icons";
 
@@ -30,6 +31,13 @@ export default function FleetInspectionModule() {
       href: "/portal/fleet/inspections",
       icon: IconChart,
       show: hasPermission("inspection.review"),
+    },
+    {
+      title: "Van List",
+      desc: "Active and inactive vans — details, latest DVIR mileage, maintenance, and service status.",
+      href: "/portal/fleet/van-list",
+      icon: IconVan,
+      show: true,
     },
     {
       title: "Maintenance & Costs",
