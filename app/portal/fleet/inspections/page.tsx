@@ -8,6 +8,7 @@ import {
   IconCalendar,
   IconCamera,
   IconCheckCircle,
+  IconChevronRight,
   IconColumns,
   IconDownload,
   IconSearch,
@@ -54,9 +55,190 @@ function cutoffPassed(dayKey: string, cutoff: string): boolean {
   return now.getHours() * 60 + now.getMinutes() > (h ?? 23) * 60 + (m ?? 59);
 }
 
-type StatusTab = "all" | "issues" | "resolved" | "incomplete" | "notdone" | "drivers";
-type ViewMode = "all" | "date" | "van" | "driver";
+type Tile = "today" | "issues" | "resolved" | "incomplete" | "notdone" | "drivers";
 type PostState = "done" | "pending" | "notdone" | null;
+
+/* ---------- searchable dropdown ---------- */
+
+function SearchSelect({
+  label,
+  icon,
+  options,
+  value,
+  onChange,
+  brand,
+}: {
+  label: string;
+  icon: React.ReactNode;
+  options: string[];
+  value: string | null;
+  onChange: (v: string | null) => void;
+  brand: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const boxRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const close = (e: MouseEvent) => {
+      if (!boxRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, []);
+
+  const shown = options.filter((o) => o.toLowerCase().includes(q.trim().toLowerCase()));
+
+  return (
+    <div ref={boxRef} className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium ${
+          value ? "text-white" : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50"
+        }`}
+        style={value ? { background: brand, borderColor: brand } : undefined}
+      >
+        {icon} {value ?? label}
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full z-20 mt-1 w-60 rounded-lg border border-slate-200 bg-white p-2 shadow-xl">
+          <input
+            autoFocus
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder={`Search ${label.toLowerCase().replace("by ", "")}s…`}
+            className="mb-1.5 w-full rounded-md border border-slate-300 px-2.5 py-1.5 text-sm outline-none focus:border-slate-500"
+          />
+          <div className="max-h-56 overflow-y-auto">
+            {value && (
+              <button
+                onClick={() => {
+                  onChange(null);
+                  setOpen(false);
+                  setQ("");
+                }}
+                className="block w-full rounded px-2.5 py-1.5 text-left text-sm font-semibold text-slate-500 hover:bg-slate-50"
+              >
+                ✕ Clear selection
+              </button>
+            )}
+            {shown.length === 0 ? (
+              <p className="px-2.5 py-2 text-sm text-slate-400">No matches</p>
+            ) : (
+              shown.map((o) => (
+                <button
+                  key={o}
+                  onClick={() => {
+                    onChange(o);
+                    setOpen(false);
+                    setQ("");
+                  }}
+                  className={`block w-full rounded px-2.5 py-1.5 text-left text-sm hover:bg-slate-50 ${
+                    o === value ? "font-bold" : "text-slate-700"
+                  }`}
+                  style={o === value ? { color: brand } : undefined}
+                >
+                  {o}
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ---------- date range picker ---------- */
+
+function DateRangePicker({
+  from,
+  to,
+  onChange,
+  brand,
+}: {
+  from: string;
+  to: string;
+  onChange: (from: string, to: string) => void;
+  brand: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [f, setF] = useState(from);
+  const [t, setT] = useState(to);
+  const boxRef = useRef<HTMLDivElement>(null);
+  const active = !!(from || to);
+
+  useEffect(() => {
+    const close = (e: MouseEvent) => {
+      if (!boxRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, []);
+
+  const label = active
+    ? `${from ? new Date(`${from}T12:00:00`).toLocaleDateString("en-US") : "…"} – ${to ? new Date(`${to}T12:00:00`).toLocaleDateString("en-US") : "…"}`
+    : "By Date";
+
+  return (
+    <div ref={boxRef} className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium ${
+          active ? "text-white" : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50"
+        }`}
+        style={active ? { background: brand, borderColor: brand } : undefined}
+      >
+        <IconCalendar size={15} /> {label}
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full z-20 mt-1 w-64 rounded-lg border border-slate-200 bg-white p-3 shadow-xl">
+          <p className="mb-2 text-xs text-slate-500">
+            Pick one date (From only) or a range.
+          </p>
+          <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-400">From</label>
+          <input
+            type="date"
+            value={f}
+            onChange={(e) => setF(e.target.value)}
+            className="mb-2 w-full rounded-md border border-slate-300 px-2.5 py-1.5 text-sm outline-none focus:border-slate-500"
+          />
+          <label className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-400">To</label>
+          <input
+            type="date"
+            value={t}
+            onChange={(e) => setT(e.target.value)}
+            className="w-full rounded-md border border-slate-300 px-2.5 py-1.5 text-sm outline-none focus:border-slate-500"
+          />
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <button
+              onClick={() => {
+                setF("");
+                setT("");
+                onChange("", "");
+                setOpen(false);
+              }}
+              className="rounded-md border border-slate-300 py-1.5 text-sm font-semibold text-slate-600"
+            >
+              Clear
+            </button>
+            <button
+              onClick={() => {
+                onChange(f, t || f);
+                setOpen(false);
+              }}
+              disabled={!f && !t}
+              className="rounded-md py-1.5 text-sm font-semibold text-white disabled:opacity-40"
+              style={{ background: brand }}
+            >
+              Apply
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 /* ---------- page ---------- */
 
@@ -67,9 +249,11 @@ export default function InspectionReviewCenter() {
   const [inspections, setInspections] = useState<Inspection[]>([]);
   const [postCutoff, setPostCutoff] = useState(DEFAULT_SETTINGS.postCutoff);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<StatusTab>("all");
-  const [mode, setMode] = useState<ViewMode>("all");
-  const [selected, setSelected] = useState<string | null>(null);
+  const [tile, setTile] = useState<Tile>("today");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [selVan, setSelVan] = useState<string | null>(null);
+  const [selDriver, setSelDriver] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [compareIds, setCompareIds] = useState<string[]>([]);
@@ -92,6 +276,9 @@ export default function InspectionReviewCenter() {
       .catch(() => {});
   }, []);
 
+  const todayKey = dateKey(new Date().toISOString());
+  const yesterdayKey = dateKey(new Date(Date.now() - 86400000).toISOString());
+
   /* Per van+day pre/post counts, for post-trip completeness. */
   const dayMap = useMemo(() => {
     const map = new Map<string, { pre: number; post: number }>();
@@ -113,7 +300,17 @@ export default function InspectionReviewCenter() {
     return cutoffPassed(dk, postCutoff) ? "notdone" : "pending";
   };
 
-  /* Driver stats (for the Drivers tab). */
+  /* Everyone who has scanned a van, auto-collected for the dropdowns. */
+  const allDrivers = useMemo(
+    () => [...new Set(inspections.map((i) => i.driver.name ?? i.driver.raw))].sort(),
+    [inspections]
+  );
+  const allVans = useMemo(
+    () => [...new Set(inspections.map((i) => i.vanId))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true })),
+    [inspections]
+  );
+
+  /* Driver stats (for the Drivers tile). */
   const driverStats = useMemo(() => {
     const map = new Map<string, { total: number; incomplete: number; missedPosts: number; lastSeen: string }>();
     for (const i of inspections) {
@@ -131,48 +328,52 @@ export default function InspectionReviewCenter() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inspections, dayMap, postCutoff]);
 
-  /* Tab + search + selection filtering. */
-  const filtered = useMemo(() => {
+  const hasScope = !!(dateFrom || dateTo || selVan || selDriver || search.trim());
+
+  const statusMatch = (i: Inspection): boolean => {
+    if (tile === "issues") return i.status === "flagged" && !i.resolution;
+    if (tile === "resolved") return !!i.resolution;
+    if (tile === "incomplete") return i.status === "failed_inspection";
+    if (tile === "notdone") return postState(i) === "notdone";
+    return true; // today tile: date handled separately; drivers tile renders its own view
+  };
+
+  const scopeMatch = (i: Inspection): boolean => {
+    const d = new Date(i.createdAt);
+    if (dateFrom && d < new Date(`${dateFrom}T00:00:00`)) return false;
+    if (dateTo && d > new Date(`${dateTo}T23:59:59`)) return false;
+    if (selVan && i.vanId !== selVan) return false;
+    if (selDriver && (i.driver.name ?? i.driver.raw) !== selDriver) return false;
     const q = search.trim().toLowerCase();
-    return inspections.filter((i) => {
-      if (tab === "issues" && !(i.status === "flagged" && !i.resolution)) return false;
-      if (tab === "resolved" && !i.resolution) return false;
-      if (tab === "incomplete" && i.status !== "failed_inspection") return false;
-      if (tab === "notdone" && postState(i) !== "notdone") return false;
-      if (mode === "van" && selected && i.vanId !== selected) return false;
-      if (mode === "driver" && selected && (i.driver.name ?? i.driver.raw) !== selected) return false;
-      if (mode === "date" && selected && dateKey(i.createdAt) !== selected) return false;
-      if (!q) return true;
+    if (q) {
       return (
         i.vanId.toLowerCase().includes(q) ||
         (i.driver.name ?? i.driver.raw).toLowerCase().includes(q) ||
         (i.driver.route ?? "").toLowerCase().includes(q)
       );
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inspections, tab, mode, selected, search, dayMap, postCutoff]);
-
-  /* Chip options for the drill-down selector. */
-  const chipOptions = useMemo(() => {
-    if (mode === "all") return [];
-    const vals = new Map<string, number>();
-    for (const i of inspections) {
-      const v = mode === "van" ? i.vanId : mode === "driver" ? (i.driver.name ?? i.driver.raw) : dateKey(i.createdAt);
-      vals.set(v, (vals.get(v) ?? 0) + 1);
     }
-    const list = [...vals.entries()];
-    if (mode === "date") list.sort((a, b) => new Date(b[0]).getTime() - new Date(a[0]).getTime());
-    else list.sort((a, b) => a[0].localeCompare(b[0], undefined, { numeric: true }));
-    return list;
-  }, [inspections, mode]);
+    return true;
+  };
+
+  const filtered = useMemo(
+    () => inspections.filter((i) => statusMatch(i) && scopeMatch(i)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [inspections, tile, dateFrom, dateTo, selVan, selDriver, search, dayMap, postCutoff]
+  );
+
+  const todayList = filtered.filter((i) => dateKey(i.createdAt) === todayKey);
+  const yesterdayList = filtered.filter((i) => dateKey(i.createdAt) === yesterdayKey);
+  const showTodayView = tile === "today" && !hasScope;
 
   const stats = useMemo(() => {
+    const todayCount = inspections.filter((i) => dateKey(i.createdAt) === todayKey).length;
     const openIssues = inspections.filter((i) => i.status === "flagged" && !i.resolution).length;
+    const resolved = inspections.filter((i) => !!i.resolution).length;
     const incomplete = inspections.filter((i) => i.status === "failed_inspection").length;
     const notdone = inspections.filter((i) => postState(i) === "notdone").length;
-    return { total: inspections.length, openIssues, incomplete, notdone };
+    return { todayCount, openIssues, resolved, incomplete, notdone, drivers: driverStats.length };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inspections, dayMap, postCutoff]);
+  }, [inspections, dayMap, postCutoff, driverStats, todayKey]);
 
   const toggleCompare = (id: string) =>
     setCompareIds((prev) =>
@@ -182,21 +383,112 @@ export default function InspectionReviewCenter() {
     .map((id) => inspections.find((i) => i.id === id))
     .filter(Boolean) as Inspection[];
 
-  const statusTabs: { key: StatusTab; label: string; count?: number }[] = [
-    { key: "all", label: "All", count: stats.total },
-    { key: "issues", label: "Open issues", count: stats.openIssues },
-    { key: "resolved", label: "Resolved" },
-    { key: "incomplete", label: "Incomplete", count: stats.incomplete },
-    { key: "notdone", label: "Post trip not done", count: stats.notdone },
-    { key: "drivers", label: "Drivers" },
+  const tiles: { key: Tile; label: string; value: number; tone: string }[] = [
+    { key: "today", label: "Today's Inspections", value: stats.todayCount, tone: "text-slate-900" },
+    { key: "issues", label: "Open issues", value: stats.openIssues, tone: stats.openIssues ? "text-amber-600" : "text-slate-900" },
+    { key: "resolved", label: "Resolved", value: stats.resolved, tone: "text-emerald-600" },
+    { key: "incomplete", label: "Incomplete", value: stats.incomplete, tone: stats.incomplete ? "text-red-600" : "text-slate-900" },
+    { key: "notdone", label: "Post trips not done", value: stats.notdone, tone: stats.notdone ? "text-rose-600" : "text-slate-900" },
+    { key: "drivers", label: "Drivers", value: stats.drivers, tone: "text-slate-900" },
   ];
 
-  const viewTabs: { key: ViewMode; label: string; icon: React.ReactNode }[] = [
-    { key: "all", label: "All", icon: null },
-    { key: "date", label: "By Date", icon: <IconCalendar size={15} /> },
-    { key: "van", label: "By Van", icon: <IconVan size={15} /> },
-    { key: "driver", label: "By Driver", icon: <IconUsers size={15} /> },
-  ];
+  const renderRow = (i: Inspection, idx: number) => {
+    const meta = statusMeta(i);
+    const open = expanded === i.id;
+    const dk = dateKey(i.createdAt);
+    const dayEntry = dayMap.get(`${i.vanId}|${dk}`);
+    const ps = postState(i);
+    const multiple = dayEntry && dayEntry.pre > 1;
+    return (
+      <div key={i.id} className={idx > 0 ? "border-t border-slate-100" : ""}>
+        <div className="flex items-center gap-3 px-4 py-3">
+          <input
+            type="checkbox"
+            checked={compareIds.includes(i.id)}
+            onChange={() => toggleCompare(i.id)}
+            title="Select for side-by-side compare"
+            className="h-4 w-4 rounded border-slate-300"
+            style={{ accentColor: brand }}
+          />
+          <button
+            onClick={() => setExpanded(open ? null : i.id)}
+            className="flex flex-1 flex-wrap items-center gap-x-4 gap-y-1 text-left"
+          >
+            <span className="w-24 font-semibold text-slate-900">{i.vanId}</span>
+            <span className="w-36 truncate text-sm text-slate-600">
+              {i.driver.name ?? i.driver.raw}
+            </span>
+            <span className="text-sm tabular-nums text-slate-500">
+              {dk} · {timeOf(i.createdAt)}
+            </span>
+            <span
+              className={`rounded px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${
+                i.tripType === "pre" ? "bg-sky-50 text-sky-700" : "bg-indigo-50 text-indigo-700"
+              }`}
+            >
+              {i.tripType}
+              {i.cycle > 1 ? ` #${i.cycle}` : ""}
+            </span>
+            {multiple && (
+              <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-500">
+                multiple today
+              </span>
+            )}
+            {ps === "pending" && (
+              <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[11px] font-bold uppercase text-amber-700">
+                post-trip pending
+              </span>
+            )}
+            {ps === "notdone" && (
+              <span className="rounded bg-rose-50 px-1.5 py-0.5 text-[11px] font-bold uppercase text-rose-700">
+                post trip not done
+              </span>
+            )}
+            <span className="ml-auto" />
+            {i.photos.length > 0 && (
+              <span
+                className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-semibold text-slate-500"
+                title="View photos"
+              >
+                <IconCamera size={13} /> {i.photos.length}
+              </span>
+            )}
+            <span className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${meta.cls}`}>
+              {meta.label}
+            </span>
+            {i.resolution && (
+              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+                <IconCheckCircle size={13} /> Resolved
+              </span>
+            )}
+          </button>
+        </div>
+
+        {open && (
+          <ExpandedDetails
+            inspection={i}
+            brand={brand}
+            canResolve={hasPermission("inspection.resolve")}
+            onResolve={() => setResolveTarget(i)}
+            onChanged={reload}
+            userName={user?.name ?? ""}
+            userRole={user?.role ?? "manager"}
+          />
+        )}
+      </div>
+    );
+  };
+
+  const listBox = (items: Inspection[], empty: string) =>
+    items.length === 0 ? (
+      <p className="rounded-lg border border-dashed border-slate-300 bg-white px-4 py-8 text-center text-sm text-slate-400">
+        {empty}
+      </p>
+    ) : (
+      <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+        {items.map((i, idx) => renderRow(i, idx))}
+      </div>
+    );
 
   return (
     <div className="mx-auto max-w-6xl px-5 py-8 md:px-8">
@@ -224,48 +516,28 @@ export default function InspectionReviewCenter() {
         )}
       </div>
 
-      {/* Stat tiles */}
-      <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {[
-          { label: "Total inspections", value: stats.total, tone: "text-slate-900", go: "all" as StatusTab },
-          { label: "Open issues", value: stats.openIssues, tone: stats.openIssues ? "text-amber-600" : "text-slate-900", go: "issues" as StatusTab },
-          { label: "Incomplete inspections", value: stats.incomplete, tone: stats.incomplete ? "text-red-600" : "text-slate-900", go: "incomplete" as StatusTab },
-          { label: "Post trips not done", value: stats.notdone, tone: stats.notdone ? "text-rose-600" : "text-slate-900", go: "notdone" as StatusTab },
-        ].map((s) => (
-          <button
-            key={s.label}
-            onClick={() => setTab(s.go)}
-            className="rounded-lg border border-slate-200 bg-white px-4 py-3.5 text-left hover:border-slate-300"
-          >
-            <p className={`text-2xl font-bold tabular-nums ${s.tone}`}>{s.value}</p>
-            <p className="mt-0.5 text-xs font-medium text-slate-500">{s.label}</p>
-          </button>
-        ))}
+      {/* Clickable stat tiles — these ARE the tabs */}
+      <div className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
+        {tiles.map((t) => {
+          const active = tile === t.key;
+          return (
+            <button
+              key={t.key}
+              onClick={() => setTile(t.key)}
+              className={`rounded-lg border bg-white px-4 py-3.5 text-left transition-colors ${
+                active ? "" : "border-slate-200 hover:border-slate-300"
+              }`}
+              style={active ? { borderColor: brand, boxShadow: `inset 0 0 0 1px ${brand}` } : undefined}
+            >
+              <p className={`text-2xl font-bold tabular-nums ${t.tone}`}>{t.value}</p>
+              <p className="mt-0.5 text-xs font-medium text-slate-500">{t.label}</p>
+            </button>
+          );
+        })}
       </div>
 
-      {/* Status tabs */}
-      <div className="mt-6 flex flex-wrap gap-1 border-b border-slate-200">
-        {statusTabs.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={`rounded-t-md border-b-2 px-3.5 py-2 text-sm font-semibold transition-colors ${
-              tab === t.key ? "" : "border-transparent text-slate-400 hover:text-slate-600"
-            }`}
-            style={tab === t.key ? { borderColor: brand, color: brand } : undefined}
-          >
-            {t.label}
-            {typeof t.count === "number" && (
-              <span className="ml-1.5 rounded-full bg-slate-100 px-1.5 py-0.5 text-[11px] font-bold text-slate-500">
-                {t.count}
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
-
-      {tab === "drivers" ? (
-        /* ---------- Drivers tab ---------- */
+      {tile === "drivers" ? (
+        /* ---------- Drivers view ---------- */
         <div className="mt-5 overflow-hidden rounded-lg border border-slate-200 bg-white">
           <div className="hidden gap-3 border-b border-slate-100 bg-slate-50 px-4 py-2 text-[11px] font-bold uppercase tracking-wide text-slate-400 sm:flex">
             <span className="flex-1">Driver</span>
@@ -281,9 +553,8 @@ export default function InspectionReviewCenter() {
               <button
                 key={d.name}
                 onClick={() => {
-                  setTab("all");
-                  setMode("driver");
-                  setSelected(d.name);
+                  setTile("today");
+                  setSelDriver(d.name);
                 }}
                 className={`flex w-full flex-wrap items-center gap-3 px-4 py-3 text-left text-sm hover:bg-slate-50 ${idx > 0 ? "border-t border-slate-100" : ""}`}
               >
@@ -309,34 +580,56 @@ export default function InspectionReviewCenter() {
         </div>
       ) : (
         <>
-          {/* View mode + search */}
+          {/* Filters: date range, van, driver, search */}
           <div className="mt-4 flex flex-wrap items-center gap-2">
-            <div className="flex rounded-lg border border-slate-300 bg-white p-0.5">
-              {viewTabs.map((t) => (
-                <button
-                  key={t.key}
-                  onClick={() => {
-                    setMode(t.key);
-                    setSelected(null);
-                  }}
-                  className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium ${
-                    mode === t.key ? "text-white" : "text-slate-600 hover:bg-slate-50"
-                  }`}
-                  style={mode === t.key ? { background: brand } : undefined}
-                >
-                  {t.icon} {t.label}
-                </button>
-              ))}
-            </div>
+            <DateRangePicker
+              from={dateFrom}
+              to={dateTo}
+              onChange={(f, t) => {
+                setDateFrom(f);
+                setDateTo(t);
+              }}
+              brand={brand}
+            />
+            <SearchSelect
+              label="By Van"
+              icon={<IconVan size={15} />}
+              options={allVans}
+              value={selVan}
+              onChange={setSelVan}
+              brand={brand}
+            />
+            <SearchSelect
+              label="By Driver"
+              icon={<IconUsers size={15} />}
+              options={allDrivers}
+              value={selDriver}
+              onChange={setSelDriver}
+              brand={brand}
+            />
             <div className="relative">
               <IconSearch size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search van, driver, route…"
-                className="w-56 rounded-lg border border-slate-300 bg-white py-2 pl-8 pr-3 text-sm outline-none focus:border-slate-500"
+                placeholder="Quick search…"
+                className="w-44 rounded-lg border border-slate-300 bg-white py-2 pl-8 pr-3 text-sm outline-none focus:border-slate-500"
               />
             </div>
+            {hasScope && (
+              <button
+                onClick={() => {
+                  setDateFrom("");
+                  setDateTo("");
+                  setSelVan(null);
+                  setSelDriver(null);
+                  setSearch("");
+                }}
+                className="text-xs font-semibold text-slate-400 underline hover:text-slate-600"
+              >
+                Clear filters
+              </button>
+            )}
             {comparePair.length === 2 && (
               <button
                 onClick={() => setCompareOpen(true)}
@@ -348,127 +641,29 @@ export default function InspectionReviewCenter() {
             )}
           </div>
 
-          {/* Drill-down chips: pick ONE van / driver / date */}
-          {mode !== "all" && (
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              <button
-                onClick={() => setSelected(null)}
-                className={`rounded-full border px-3 py-1 text-xs font-semibold ${
-                  selected === null ? "text-white" : "border-slate-300 bg-white text-slate-600"
-                }`}
-                style={selected === null ? { background: brand, borderColor: brand } : undefined}
-              >
-                All {mode === "van" ? "vans" : mode === "driver" ? "drivers" : "dates"}
-              </button>
-              {chipOptions.map(([v, count]) => (
-                <button
-                  key={v}
-                  onClick={() => setSelected(selected === v ? null : v)}
-                  className={`rounded-full border px-3 py-1 text-xs font-semibold ${
-                    selected === v ? "text-white" : "border-slate-300 bg-white text-slate-600 hover:border-slate-400"
-                  }`}
-                  style={selected === v ? { background: brand, borderColor: brand } : undefined}
-                >
-                  {v} <span className={selected === v ? "opacity-70" : "text-slate-400"}>({count})</span>
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* List */}
+          {/* Lists */}
           {loading ? (
             <p className="py-20 text-center text-slate-400">Loading…</p>
+          ) : showTodayView ? (
+            <div className="mt-4 space-y-6">
+              <div>
+                <h2 className="mb-2 text-sm font-bold uppercase tracking-wide text-slate-500">
+                  Today · {todayKey}
+                </h2>
+                {listBox(todayList, "No inspections performed today.")}
+              </div>
+              <div>
+                <h2 className="mb-2 flex items-center gap-1.5 text-sm font-bold uppercase tracking-wide text-slate-500">
+                  Yesterday&apos;s DVIRs · {yesterdayKey}
+                  <IconChevronRight size={14} className="text-slate-300" />
+                </h2>
+                {listBox(yesterdayList, "No inspections yesterday.")}
+              </div>
+            </div>
           ) : filtered.length === 0 ? (
             <p className="py-20 text-center text-slate-400">No inspections match.</p>
           ) : (
-            <div className="mt-4 overflow-hidden rounded-lg border border-slate-200 bg-white">
-              {filtered.map((i, idx) => {
-                const meta = statusMeta(i);
-                const open = expanded === i.id;
-                const dk = dateKey(i.createdAt);
-                const dayEntry = dayMap.get(`${i.vanId}|${dk}`);
-                const ps = postState(i);
-                const multiple = dayEntry && dayEntry.pre > 1;
-                return (
-                  <div key={i.id} className={idx > 0 ? "border-t border-slate-100" : ""}>
-                    <div className="flex items-center gap-3 px-4 py-3">
-                      <input
-                        type="checkbox"
-                        checked={compareIds.includes(i.id)}
-                        onChange={() => toggleCompare(i.id)}
-                        title="Select for side-by-side compare"
-                        className="h-4 w-4 rounded border-slate-300"
-                        style={{ accentColor: brand }}
-                      />
-                      <button
-                        onClick={() => setExpanded(open ? null : i.id)}
-                        className="flex flex-1 flex-wrap items-center gap-x-4 gap-y-1 text-left"
-                      >
-                        <span className="w-24 font-semibold text-slate-900">{i.vanId}</span>
-                        <span className="w-36 truncate text-sm text-slate-600">
-                          {i.driver.name ?? i.driver.raw}
-                        </span>
-                        <span className="text-sm tabular-nums text-slate-500">
-                          {dk} · {timeOf(i.createdAt)}
-                        </span>
-                        <span
-                          className={`rounded px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${
-                            i.tripType === "pre" ? "bg-sky-50 text-sky-700" : "bg-indigo-50 text-indigo-700"
-                          }`}
-                        >
-                          {i.tripType}
-                          {i.cycle > 1 ? ` #${i.cycle}` : ""}
-                        </span>
-                        {multiple && (
-                          <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-500">
-                            multiple today
-                          </span>
-                        )}
-                        {ps === "pending" && (
-                          <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[11px] font-bold uppercase text-amber-700">
-                            post-trip pending
-                          </span>
-                        )}
-                        {ps === "notdone" && (
-                          <span className="rounded bg-rose-50 px-1.5 py-0.5 text-[11px] font-bold uppercase text-rose-700">
-                            post trip not done
-                          </span>
-                        )}
-                        <span className="ml-auto" />
-                        {i.photos.length > 0 && (
-                          <span
-                            className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-semibold text-slate-500"
-                            title="View photos"
-                          >
-                            <IconCamera size={13} /> {i.photos.length}
-                          </span>
-                        )}
-                        <span className={`rounded-full border px-2.5 py-0.5 text-xs font-semibold ${meta.cls}`}>
-                          {meta.label}
-                        </span>
-                        {i.resolution && (
-                          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
-                            <IconCheckCircle size={13} /> Resolved
-                          </span>
-                        )}
-                      </button>
-                    </div>
-
-                    {open && (
-                      <ExpandedDetails
-                        inspection={i}
-                        brand={brand}
-                        canResolve={hasPermission("inspection.resolve")}
-                        onResolve={() => setResolveTarget(i)}
-                        onChanged={reload}
-                        userName={user?.name ?? ""}
-                        userRole={user?.role ?? "manager"}
-                      />
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+            <div className="mt-4">{listBox(filtered, "No inspections match.")}</div>
           )}
         </>
       )}
