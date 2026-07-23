@@ -65,7 +65,19 @@ export async function loadAllQuestions(): Promise<{ questions: QuestionDef[]; pe
     return { questions: [...DEFAULT_QUESTIONS], persisted: true };
   }
 
-  const questions = (data as QuestionRow[]).map(rowToDef).sort((a, b) => a.sortOrder - b.sortOrder);
+  const questions = (data as QuestionRow[]).map(rowToDef);
+
+  // Sync: defaults added in newer app versions (e.g. new DOT items) get
+  // inserted into an already-seeded table so every tenant receives them.
+  const missing = DEFAULT_QUESTIONS.filter((d) => !questions.some((q) => q.id === d.id));
+  if (missing.length > 0) {
+    const { error: syncError } = await supabase
+      .from("questions")
+      .insert(missing.map(defToRow));
+    if (!syncError) questions.push(...missing);
+  }
+
+  questions.sort((a, b) => a.sortOrder - b.sortOrder);
   return { questions, persisted: true };
 }
 

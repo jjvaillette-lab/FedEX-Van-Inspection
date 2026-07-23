@@ -3,8 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/app/components/portal/AuthProvider";
-import { IconArrowDown, IconArrowUp, IconPlus } from "@/app/components/icons";
+import { IconAlert, IconArrowDown, IconArrowUp, IconPlus } from "@/app/components/icons";
+import { DOT_MANDATED_IDS } from "@/lib/questions";
 import type { InspectionSettings, QuestionDef, TripType } from "@/lib/types";
+
+const isDotMandated = (id: string) => (DOT_MANDATED_IDS as readonly string[]).includes(id);
 
 /**
  * Owner checklist editor. The philosophy (per owner spec): load MORE questions
@@ -27,6 +30,8 @@ export default function ChecklistEditor() {
   const [adding, setAdding] = useState<TripType | null>(null);
   const [newLabel, setNewLabel] = useState("");
   const [newCategory, setNewCategory] = useState("");
+  /** DOT-mandated question awaiting the compliance confirmation to disable. */
+  const [dotWarn, setDotWarn] = useState<QuestionDef | null>(null);
 
   useEffect(() => {
     fetch("/api/questions?all=1")
@@ -260,9 +265,15 @@ export default function ChecklistEditor() {
                     type="checkbox"
                     checked={q.enabled}
                     title={q.enabled ? "Visible to drivers — uncheck to hide" : "Hidden from drivers"}
-                    onChange={(e) =>
-                      mutate((qs) => qs.map((x) => (x.id === q.id ? { ...x, enabled: e.target.checked } : x)))
-                    }
+                    onChange={(e) => {
+                      // Disabling a DOT-mandated item requires a second
+                      // compliance confirmation (owner's call in the end).
+                      if (!e.target.checked && isDotMandated(q.id)) {
+                        setDotWarn(q);
+                        return;
+                      }
+                      mutate((qs) => qs.map((x) => (x.id === q.id ? { ...x, enabled: e.target.checked } : x)));
+                    }}
                     className="h-4 w-4 shrink-0"
                     style={{ accentColor: brand }}
                   />
@@ -277,6 +288,14 @@ export default function ChecklistEditor() {
                   {q.input !== "check" && (
                     <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-slate-500">
                       {q.input}
+                    </span>
+                  )}
+                  {isDotMandated(q.id) && (
+                    <span
+                      title="FMCSA-mandated driver inspection item (49 CFR 396.11)"
+                      className="rounded border border-red-200 bg-red-50 px-1.5 py-0.5 text-[10px] font-bold uppercase text-red-700"
+                    >
+                      DOT required
                     </span>
                   )}
                   <button
@@ -309,6 +328,44 @@ export default function ChecklistEditor() {
         Tip: keep extra questions in the list and just toggle them off — turning one back on takes a
         single click and a save.
       </p>
+
+      {/* DOT-compliance warning — second confirmation before disabling a mandated item */}
+      {dotWarn && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 px-5">
+          <div className="w-full max-w-md rounded-xl bg-white p-6">
+            <div className="flex items-center gap-2 text-red-600">
+              <IconAlert size={22} />
+              <h3 className="text-lg font-bold text-slate-900">DOT-mandated question</h3>
+            </div>
+            <p className="mt-3 text-sm text-slate-600">
+              <strong>&ldquo;{dotWarn.label}&rdquo;</strong> is a driver-inspection item required by
+              FMCSA regulation (49 CFR 396.11).
+            </p>
+            <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-xs text-red-700">
+              Turning this question off may make your operation <strong>not DOT compliant</strong>.
+              The decision is yours — but we recommend keeping it on for any DOT-regulated fleet.
+            </p>
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setDotWarn(null)}
+                className="rounded-lg py-2.5 text-sm font-semibold text-white"
+                style={{ background: brand }}
+              >
+                Keep it on
+              </button>
+              <button
+                onClick={() => {
+                  mutate((qs) => qs.map((x) => (x.id === dotWarn.id ? { ...x, enabled: false } : x)));
+                  setDotWarn(null);
+                }}
+                className="rounded-lg border border-red-300 py-2.5 text-sm font-semibold text-red-700"
+              >
+                Turn off anyway
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

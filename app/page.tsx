@@ -10,6 +10,7 @@ import {
   IconFile,
   IconGauge,
   IconRoute,
+  IconShield,
   IconUsers,
   IconVan,
   IconWrench,
@@ -242,6 +243,29 @@ export default function Landing() {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* FMCSA compliance */}
+        <div className="mt-10 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-7 sm:flex-row sm:items-start">
+          <span
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg"
+            style={{ background: `${navy}12`, color: navy }}
+          >
+            <IconShield size={24} />
+          </span>
+          <div>
+            <h3 className="text-lg font-bold" style={{ color: navy }}>FMCSA-ready out of the box</h3>
+            <p className="mt-1.5 text-sm text-slate-600">
+              Under FMCSA rules, commercial vans require a documented driver inspection every day of
+              use. Our default checklist covers every driver-inspection item in{" "}
+              <strong>49 CFR 396.11</strong> — service and parking brakes, steering, lighting devices
+              and reflectors, tires, horn, windshield wipers, rear-vision mirrors, coupling devices,
+              wheels and rims, and emergency equipment — and every report, photo, and repair
+              certification is retained in the cloud well beyond the DOT&apos;s three-month
+              requirement. Not a DOT operation? Switch to Non-DOT mode and the checklist trims
+              itself to fit.
+            </p>
+          </div>
         </div>
 
         {/* Custom builds */}

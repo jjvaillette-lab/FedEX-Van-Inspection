@@ -26,6 +26,7 @@ export const DEFAULT_QUESTIONS: QuestionDef[] = [
   { id: "doors", label: "All doors (cab and cargo) open, close, and latch securely", category: "Cab & Restraints", trip: "pre", input: "check", dotSpecific: false, enabled: true, sortOrder: 150 },
   { id: "emergency_equipment", label: "Fire extinguisher, reflective triangles, and first-aid kit present and in date", hint: "Required DOT emergency equipment", category: "Safety Equipment", trip: "pre", input: "check", dotSpecific: true, enabled: true, sortOrder: 160 },
   { id: "cargo_secure", label: "Cargo area floor is clear and load is secured", category: "Cargo", trip: "pre", input: "check", dotSpecific: false, enabled: true, sortOrder: 170 },
+  { id: "coupling", label: "Coupling devices / hitch secure and undamaged", hint: "Mark OK if the van has no hitch or towing equipment", category: "Coupling", trip: "pre", input: "check", dotSpecific: true, enabled: true, sortOrder: 175 },
   { id: "documents", label: "Registration and insurance/permit documents are in the van", category: "Documents", trip: "pre", input: "check", dotSpecific: true, enabled: true, sortOrder: 180 },
   { id: "body_damage", label: "No new body damage that affects safe operation", hint: "Note anything you'll photograph next", category: "Body", trip: "pre", input: "check", dotSpecific: false, enabled: true, sortOrder: 190 },
 
@@ -61,3 +62,26 @@ export const INTERIOR_STEPS: PhotoStep[] = [
 export const OPTIONAL_SLOTS: PhotoSlot[] = ["optional_1", "optional_2", "optional_3", "optional_4"];
 
 export const DEFAULT_SETTINGS = { dotMode: true, interiorPhotos: false };
+
+/**
+ * FMCSA-mandated driver inspection items (49 CFR 396.11): service brakes,
+ * parking brake, steering, lighting devices & reflectors, tires, horn,
+ * windshield wipers, rear-vision mirrors, coupling devices, wheels & rims,
+ * and emergency equipment. Disabling any of these in the checklist editor
+ * triggers a DOT-compliance warning with a second confirmation — though the
+ * final call is always the owner's.
+ */
+export const DOT_MANDATED_IDS = [
+  "brakes", // service + parking brake
+  "steering",
+  "lights_head",
+  "lights_signals",
+  "reflectors",
+  "tires",
+  "horn",
+  "windshield", // includes wipers/washers
+  "mirrors",
+  "coupling",
+  "wheels",
+  "emergency_equipment",
+] as const;
