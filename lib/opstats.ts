@@ -142,20 +142,24 @@ export interface Rank {
 }
 
 /**
- * Composite 0–100 score. Weights: delivery success 45%, pickup success 15%,
- * stops/hour 30% (22/hr = full marks), road-vs-duty 10% (90%+ = full marks).
- * Missing components drop out and the rest re-normalize. Thresholds are a
- * starting point for the owner to tune.
+ * Composite 0–100 score, graded on a hard curve:
+ *  - Delivery success 45%: 90% delivery = zero credit, 100% = full credit.
+ *  - Pickup success 15%: same 90–100% curve.
+ *  - Stops/hour 30%: full marks at 25/hr.
+ *  - Road-vs-duty 10%: 70% = zero credit, 95%+ = full credit.
+ * Missing components drop out and the rest re-normalize.
+ * Tiers: Elite ≥93 · Strong ≥85 · Good ≥75 · Coach ≥65 · Action below.
  */
 export function rankOf(m: DriverMetrics): Rank {
+  const clamp = (v: number) => Math.max(0, Math.min(v, 1));
   const parts: { w: number; v: number }[] = [];
-  if (m.deliveryPct != null) parts.push({ w: 0.45, v: Math.min(m.deliveryPct, 1) });
-  if (m.pickupPct != null) parts.push({ w: 0.15, v: m.pickupPct });
-  if (m.stopsPerHour != null) parts.push({ w: 0.3, v: Math.min(m.stopsPerHour / 22, 1) });
-  if (m.utilization != null) parts.push({ w: 0.1, v: Math.min(m.utilization / 0.9, 1) });
+  if (m.deliveryPct != null) parts.push({ w: 0.45, v: clamp((m.deliveryPct - 0.9) / 0.1) });
+  if (m.pickupPct != null) parts.push({ w: 0.15, v: clamp((m.pickupPct - 0.9) / 0.1) });
+  if (m.stopsPerHour != null) parts.push({ w: 0.3, v: clamp(m.stopsPerHour / 25) });
+  if (m.utilization != null) parts.push({ w: 0.1, v: clamp((m.utilization - 0.7) / 0.25) });
   const totalW = parts.reduce((s, p) => s + p.w, 0);
   const score = totalW > 0 ? Math.round((parts.reduce((s, p) => s + p.w * p.v, 0) / totalW) * 100) : 0;
-  const tier = score >= 90 ? "Elite" : score >= 80 ? "Strong" : score >= 70 ? "Good" : score >= 60 ? "Coach" : "Action";
+  const tier = score >= 93 ? "Elite" : score >= 85 ? "Strong" : score >= 75 ? "Good" : score >= 65 ? "Coach" : "Action";
   return { score, tier };
 }
 

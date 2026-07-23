@@ -411,7 +411,7 @@ export default function DriverStatsPage() {
                     <td className="px-2 py-2.5 text-right font-semibold tabular-nums text-slate-900">{money(s.bonus)}</td>
                     <td className="px-3 py-2.5 text-right">
                       <span className={`inline-block rounded-full border px-2 py-0.5 text-[11px] font-bold ${TIER_STYLE[s.rank.tier]}`}>
-                        {s.rank.score} · {s.rank.tier}
+                        {s.rank.tier}
                       </span>
                     </td>
                   </tr>
@@ -475,8 +475,9 @@ export default function DriverStatsPage() {
 
       <p className="mt-3 text-xs text-slate-400">
         Bonus: ${settings.bonusRate.toFixed(2)}/stop after {settings.bonusThreshold} combined stops,
-        reset daily; totals accumulate per {settings.payroll} pay period. Rankings weigh delivery
-        success, pickup success, stops/hour, and road-vs-duty time.
+        reset daily; totals accumulate per {settings.payroll} pay period. Rankings grade on a hard
+        curve across delivery success, pickup success, stops/hour, and road-vs-duty time — Elite is
+        earned, not given.
       </p>
 
       {uploadOpen && (
