@@ -99,15 +99,8 @@ export default function DriverStatsPage() {
     return { drivers: y.length, dispatched, delivered, stops, bonus };
   }, [rows, yIso, settings]);
 
-  /* ---------- pay-period bonus (per driver) ---------- */
+  /* ---------- current pay period (shown in the controls row) ---------- */
   const payPeriod = useMemo(() => payPeriodOf(isoDay(new Date()), settings), [settings]);
-  const periodBonus = useMemo(() => {
-    const map = new Map<string, number>();
-    rows
-      .filter((r) => r.date >= payPeriod.start && r.date <= payPeriod.end)
-      .forEach((r) => map.set(r.driver, (map.get(r.driver) ?? 0) + dailyBonus(r, settings)));
-    return map;
-  }, [rows, payPeriod, settings]);
 
   /* ---------- scorecards ---------- */
   const scorecards = useMemo(() => {
@@ -418,9 +411,26 @@ export default function DriverStatsPage() {
                   {expandedDriver === s.driver && (
                     <tr key={`${s.driver}-detail`} className="border-b border-slate-100 bg-slate-50/60">
                       <td colSpan={11} className="px-4 py-3">
-                        <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-slate-400">
-                          Daily breakdown · Pay-period bonus to date: {money(periodBonus.get(s.driver) ?? 0)}
-                        </p>
+                        {(() => {
+                          const drv = inRange.filter((r) => r.driver === s.driver);
+                          const latest = drv.reduce((m, r) => (r.date > m ? r.date : m), drv[0]?.date ?? isoDay(new Date()));
+                          const pp = payPeriodOf(latest, settings);
+                          const ppBonus = rows
+                            .filter((r) => r.driver === s.driver && r.date >= pp.start && r.date <= pp.end)
+                            .reduce((sum, r) => sum + dailyBonus(r, settings), 0);
+                          return (
+                            <div className="mb-3 flex items-center gap-3">
+                              <p className="text-sm font-bold text-slate-700">Daily Breakdown</p>
+                              <span className="h-px flex-1 bg-slate-200" />
+                              <span
+                                className="rounded-full border px-2.5 py-1 text-[11px] font-bold tabular-nums"
+                                style={{ borderColor: `${brand}44`, color: brand, background: `${brand}0d` }}
+                              >
+                                Bonus, pay period {displayDate(pp.start)} – {displayDate(pp.end)}: {money(ppBonus)}
+                              </span>
+                            </div>
+                          );
+                        })()}
                         <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
                           {inRange
                             .filter((r) => r.driver === s.driver)
