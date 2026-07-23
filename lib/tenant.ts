@@ -67,6 +67,8 @@ export interface PortalUser {
   admin?: boolean;
   /** Portal tabs this manager may open (owners/admins see all). */
   tabs?: Section[];
+  /** LMA platform staff — master access across companies (support). */
+  platformAdmin?: boolean;
 }
 
 /**

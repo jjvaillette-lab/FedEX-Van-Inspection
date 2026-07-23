@@ -1,36 +1,35 @@
 import { NextResponse } from "next/server";
 import { getSupabase } from "@/lib/supabase";
+import { companyFromRequest, loadSetting, saveSetting } from "@/lib/company";
 import { DEFAULT_MANAGERS, type ManagerRecord } from "@/lib/tenant";
 
 export const runtime = "nodejs";
 
 /**
- * Manager accounts + their tab access, stored as one row in app_settings
+ * Manager accounts + their tab access, stored per company in app_settings
  * (key "managers"). Team-session only — proxy.ts blocks drivers & the public.
  * Replaced by real per-user auth (Supabase Auth) in the production phase.
  */
 
-async function load(): Promise<{ managers: ManagerRecord[]; persisted: boolean }> {
+async function load(companyId: string): Promise<{ managers: ManagerRecord[]; persisted: boolean }> {
   const supabase = getSupabase();
   if (!supabase) return { managers: DEFAULT_MANAGERS, persisted: false };
-  const { data, error } = await supabase
-    .from("app_settings")
-    .select("value")
-    .eq("key", "managers")
-    .maybeSingle();
-  if (error) return { managers: DEFAULT_MANAGERS, persisted: false };
-  if (!data) {
+  const { value, persisted } = await loadSetting<ManagerRecord[]>(companyId, "managers");
+  if (!persisted) return { managers: DEFAULT_MANAGERS, persisted: false };
+  if (!value) {
     // First use: seed the defaults so edits start from a stored list.
-    const { error: seedError } = await supabase
-      .from("app_settings")
-      .upsert({ key: "managers", value: DEFAULT_MANAGERS });
-    return { managers: DEFAULT_MANAGERS, persisted: !seedError };
+    try {
+      await saveSetting(companyId, "managers", DEFAULT_MANAGERS);
+      return { managers: DEFAULT_MANAGERS, persisted: true };
+    } catch {
+      return { managers: DEFAULT_MANAGERS, persisted: false };
+    }
   }
-  return { managers: (data.value as ManagerRecord[]) ?? [], persisted: true };
+  return { managers: value, persisted: true };
 }
 
-export async function GET() {
-  const result = await load();
+export async function GET(request: Request) {
+  const result = await load(await companyFromRequest(request));
   return NextResponse.json(result);
 }
 
@@ -48,15 +47,15 @@ export async function PUT(request: Request) {
   if (!supabase) {
     return NextResponse.json({ error: "Database not configured." }, { status: 503 });
   }
-  const { error } = await supabase
-    .from("app_settings")
-    .upsert({ key: "managers", value: body.managers });
-  if (error) {
+  try {
+    await saveSetting(await companyFromRequest(request), "managers", body.managers);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Save failed";
     return NextResponse.json(
       {
-        error: /relation|schema cache/i.test(error.message)
+        error: /relation|schema cache/i.test(msg)
           ? "Database update required: run supabase/migration-v2.sql in the Supabase SQL editor."
-          : `Save failed: ${error.message}`,
+          : msg,
       },
       { status: 500 }
     );

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { listInspections, updateInspection, uploadVanFile } from "@/lib/storage";
+import { companyFromRequest } from "@/lib/company";
 import type { InspectionComment, Resolution } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -28,7 +29,8 @@ export async function PATCH(
   const body = (await request.json().catch(() => null)) as PatchBody | null;
   if (!body) return NextResponse.json({ error: "Invalid request" }, { status: 400 });
 
-  const all = await listInspections();
+  const companyId = await companyFromRequest(request);
+  const all = await listInspections(companyId);
   const inspection = all.find((i) => i.id === id);
   if (!inspection) return NextResponse.json({ error: "Inspection not found" }, { status: 404 });
 
@@ -52,7 +54,7 @@ export async function PATCH(
           body.receiptDataUrl
         );
       }
-      await updateInspection(id, { resolution });
+      await updateInspection(id, { resolution }, companyId);
       return NextResponse.json({ ok: true, resolution });
     }
 
@@ -70,7 +72,7 @@ export async function PATCH(
         disagreement: !!body.disagreement,
       };
       const comments = [...(inspection.comments ?? []), comment];
-      await updateInspection(id, { comments });
+      await updateInspection(id, { comments }, companyId);
       return NextResponse.json({ ok: true, comments });
     }
 

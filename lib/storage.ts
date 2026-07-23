@@ -2,6 +2,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import type { Inspection, InspectionPhoto } from "./types";
 import { getSupabase, PHOTO_BUCKET } from "./supabase";
+import { DEFAULT_COMPANY_ID, missingCompanyColumn } from "./company";
 
 /**
  * Storage abstraction for inspections.
@@ -16,22 +17,29 @@ import { getSupabase, PHOTO_BUCKET } from "./supabase";
 /* Public API                                                          */
 /* ------------------------------------------------------------------ */
 
-export async function saveInspection(inspection: Inspection): Promise<void> {
+export async function saveInspection(
+  inspection: Inspection,
+  companyId: string = DEFAULT_COMPANY_ID
+): Promise<void> {
   const supabase = getSupabase();
-  if (supabase) await saveToSupabase(inspection);
+  if (supabase) await saveToSupabase(inspection, companyId);
   else await saveToLocalFile(inspection);
 }
 
-export async function listInspections(vanId?: string): Promise<Inspection[]> {
+export async function listInspections(
+  companyId: string = DEFAULT_COMPANY_ID,
+  vanId?: string
+): Promise<Inspection[]> {
   const supabase = getSupabase();
-  const all = supabase ? await listFromSupabase() : await listFromLocalFile();
+  const all = supabase ? await listFromSupabase(companyId) : await listFromLocalFile();
   return vanId ? all.filter((i) => i.vanId === vanId) : all;
 }
 
 /** Apply a partial update (resolution, comments, status). */
 export async function updateInspection(
   id: string,
-  patch: Partial<Pick<Inspection, "resolution" | "comments" | "status" | "hasIssues">>
+  patch: Partial<Pick<Inspection, "resolution" | "comments" | "status" | "hasIssues">>,
+  companyId: string = DEFAULT_COMPANY_ID
 ): Promise<void> {
   const supabase = getSupabase();
   if (supabase) {
@@ -40,7 +48,14 @@ export async function updateInspection(
     if (patch.comments !== undefined) row.comments = patch.comments;
     if (patch.status !== undefined) row.status = patch.status;
     if (patch.hasIssues !== undefined) row.has_issues = patch.hasIssues;
-    const { error } = await supabase.from("inspections").update(row).eq("id", id);
+    let { error } = await supabase
+      .from("inspections")
+      .update(row)
+      .eq("id", id)
+      .eq("company_id", companyId);
+    if (error && missingCompanyColumn(error.message)) {
+      ({ error } = await supabase.from("inspections").update(row).eq("id", id));
+    }
     if (error) {
       throw new Error(
         isMissingColumn(error.message)
@@ -88,7 +103,7 @@ function isMissingColumn(message: string): boolean {
   return /column|schema cache/i.test(message);
 }
 
-async function saveToSupabase(inspection: Inspection): Promise<void> {
+async function saveToSupabase(inspection: Inspection, companyId: string): Promise<void> {
   const supabase = getSupabase()!;
 
   // Upload each photo, swapping inline base64 for a Storage URL.
@@ -129,16 +144,17 @@ async function saveToSupabase(inspection: Inspection): Promise<void> {
     comments: inspection.comments ?? [],
   };
 
-  const { error } = await supabase.from("inspections").insert(fullRow);
-  if (!error) return;
-
-  // Pre-migration database: keep the record, minus the new columns.
-  if (isMissingColumn(error.message)) {
-    const { error: legacyError } = await supabase.from("inspections").insert(legacyRow);
-    if (legacyError) throw new Error(`Insert failed: ${legacyError.message}`);
-    return;
+  // Newest schema first, then progressively older column sets so a record is
+  // never lost on a database that hasn't had the latest migration.
+  const attempts = [{ ...fullRow, company_id: companyId }, fullRow, legacyRow];
+  let lastError = "";
+  for (const row of attempts) {
+    const { error } = await supabase.from("inspections").insert(row);
+    if (!error) return;
+    lastError = error.message;
+    if (!isMissingColumn(error.message)) break;
   }
-  throw new Error(`Insert failed: ${error.message}`);
+  throw new Error(`Insert failed: ${lastError}`);
 }
 
 interface InspectionRow {
@@ -180,12 +196,19 @@ function rowToInspection(row: InspectionRow): Inspection {
   };
 }
 
-async function listFromSupabase(): Promise<Inspection[]> {
+async function listFromSupabase(companyId: string): Promise<Inspection[]> {
   const supabase = getSupabase()!;
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("inspections")
     .select("*")
+    .eq("company_id", companyId)
     .order("created_at", { ascending: false });
+  if (error && missingCompanyColumn(error.message)) {
+    ({ data, error } = await supabase
+      .from("inspections")
+      .select("*")
+      .order("created_at", { ascending: false }));
+  }
   if (error) throw new Error(`Query failed: ${error.message}`);
   return (data as InspectionRow[]).map(rowToInspection);
 }

@@ -7,7 +7,7 @@ import { PLATFORM } from "@/lib/brand";
 import { useAuth } from "@/app/components/portal/AuthProvider";
 
 export default function LoginPage() {
-  const { login } = useAuth();
+  const { loginWithPassword } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -20,20 +20,11 @@ export default function LoginPage() {
     setBusy(true);
     setError(null);
     try {
-      // Verify the access password on the server (sets the private-session cookie).
-      const res = await fetch("/api/gate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
-      });
-      if (!res.ok) {
-        setError("Incorrect email or password.");
-        return;
-      }
-      // Establish the account/role for this session.
-      const result = await login(email);
+      // Real account first; the shared team password still works during the
+      // transition (handled server-side).
+      const result = await loginWithPassword(email, password);
       if (!result.ok) {
-        setError(result.error ?? "No account found for that email.");
+        setError(result.error ?? "Incorrect email or password.");
         return;
       }
       const next = new URLSearchParams(window.location.search).get("next");

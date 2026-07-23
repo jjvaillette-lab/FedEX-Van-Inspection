@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabase } from "@/lib/supabase";
 import { listInspections } from "@/lib/storage";
+import { companyFromRequest, missingCompanyColumn } from "@/lib/company";
 import type { VanRecord } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -36,13 +37,17 @@ const rowToVan = (r: Row): VanRecord => ({
  * GET: the full van list — registry rows merged with every van that appears
  * in DVIRs (auto-discovered), plus the latest DVIR mileage per van.
  */
-export async function GET() {
+export async function GET(request: Request) {
   const supabase = getSupabase();
+  const companyId = await companyFromRequest(request);
 
   let registry: VanRecord[] = [];
   let persisted = false;
   if (supabase) {
-    const { data, error } = await supabase.from("vans").select("*");
+    let { data, error } = await supabase.from("vans").select("*").eq("company_id", companyId);
+    if (error && missingCompanyColumn(error.message)) {
+      ({ data, error } = await supabase.from("vans").select("*"));
+    }
     if (!error) {
       registry = (data as Row[]).map(rowToVan);
       persisted = true;
@@ -50,7 +55,7 @@ export async function GET() {
   }
 
   // Discover vans + latest mileage from inspections.
-  const inspections = await listInspections().catch(() => []);
+  const inspections = await listInspections(companyId).catch(() => []);
   const seen = new Map<string, { lastDvir: string; mileage: number | null; mileageAsOf: string | null }>();
   for (const i of inspections) {
     const e = seen.get(i.vanId) ?? { lastDvir: i.createdAt, mileage: null, mileageAsOf: null };
@@ -109,7 +114,13 @@ export async function PUT(request: Request) {
   if (rows.length === 0) return NextResponse.json({ error: "Van ID is required." }, { status: 400 });
   const supabase = getSupabase();
   if (!supabase) return NextResponse.json({ error: "Database not configured." }, { status: 503 });
-  const { error } = await supabase.from("vans").upsert(rows);
+  const companyId = await companyFromRequest(request);
+  let { error } = await supabase
+    .from("vans")
+    .upsert(rows.map((r) => ({ ...r, company_id: companyId })));
+  if (error && missingCompanyColumn(error.message)) {
+    ({ error } = await supabase.from("vans").upsert(rows));
+  }
   if (error) {
     return NextResponse.json(
       { error: /relation|schema cache/i.test(error.message) ? MIGRATION_MSG : `Save failed: ${error.message}` },
@@ -131,12 +142,17 @@ export async function PATCH(request: Request) {
   }
   const supabase = getSupabase();
   if (!supabase) return NextResponse.json({ error: "Database not configured." }, { status: 503 });
-  const { error } = await supabase.from("vans").upsert({
+  const companyId = await companyFromRequest(request);
+  const row = {
     id: body.id.trim(),
     active: body.active,
     status_reason: body.active ? null : body.reason?.trim() || "Taken out of service",
     status_changed_at: new Date().toISOString(),
-  });
+  };
+  let { error } = await supabase.from("vans").upsert({ ...row, company_id: companyId });
+  if (error && missingCompanyColumn(error.message)) {
+    ({ error } = await supabase.from("vans").upsert(row));
+  }
   if (error) {
     return NextResponse.json(
       { error: /relation|schema cache/i.test(error.message) ? MIGRATION_MSG : `Update failed: ${error.message}` },

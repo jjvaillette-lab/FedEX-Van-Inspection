@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabase } from "@/lib/supabase";
 import { uploadVanFile } from "@/lib/storage";
+import { companyFromRequest, missingCompanyColumn } from "@/lib/company";
 import type { MaintenanceRecord } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -38,9 +39,17 @@ export async function GET(request: Request) {
   const supabase = getSupabase();
   if (!supabase) return NextResponse.json({ entries: [], persisted: false });
   const vanId = new URL(request.url).searchParams.get("vanId");
-  let query = supabase.from("maintenance").select("*").order("date", { ascending: false });
-  if (vanId) query = query.eq("van_id", vanId);
-  const { data, error } = await query;
+  const companyId = await companyFromRequest(request);
+  const build = (scoped: boolean) => {
+    let query = supabase.from("maintenance").select("*").order("date", { ascending: false });
+    if (scoped) query = query.eq("company_id", companyId);
+    if (vanId) query = query.eq("van_id", vanId);
+    return query;
+  };
+  let { data, error } = await build(true);
+  if (error && missingCompanyColumn(error.message)) {
+    ({ data, error } = await build(false));
+  }
   if (error) {
     return NextResponse.json({ entries: [], persisted: false, error: MIGRATION_MSG });
   }
@@ -74,20 +83,25 @@ export async function POST(request: Request) {
     }
   }
 
-  const { data, error } = await supabase
+  const companyId = await companyFromRequest(request);
+  const row = {
+    van_id: body.vanId.trim(),
+    date: body.date,
+    mileage: body.mileage ?? null,
+    category: body.category?.trim() || "Repair",
+    description: body.description?.trim() || "—",
+    cost: Number(body.cost) || 0,
+    receipt_url: receiptUrl,
+    created_by: body.createdBy ?? null,
+  };
+  let { data, error } = await supabase
     .from("maintenance")
-    .insert({
-      van_id: body.vanId.trim(),
-      date: body.date,
-      mileage: body.mileage ?? null,
-      category: body.category?.trim() || "Repair",
-      description: body.description?.trim() || "—",
-      cost: Number(body.cost) || 0,
-      receipt_url: receiptUrl,
-      created_by: body.createdBy ?? null,
-    })
+    .insert({ ...row, company_id: companyId })
     .select()
     .single();
+  if (error && missingCompanyColumn(error.message)) {
+    ({ data, error } = await supabase.from("maintenance").insert(row).select().single());
+  }
 
   if (error) {
     return NextResponse.json(
@@ -103,7 +117,15 @@ export async function DELETE(request: Request) {
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
   const supabase = getSupabase();
   if (!supabase) return NextResponse.json({ error: "Database not configured." }, { status: 503 });
-  const { error } = await supabase.from("maintenance").delete().eq("id", id);
+  const companyId = await companyFromRequest(request);
+  let { error } = await supabase
+    .from("maintenance")
+    .delete()
+    .eq("id", id)
+    .eq("company_id", companyId);
+  if (error && missingCompanyColumn(error.message)) {
+    ({ error } = await supabase.from("maintenance").delete().eq("id", id));
+  }
   if (error) return NextResponse.json({ error: `Delete failed: ${error.message}` }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

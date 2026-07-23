@@ -3,6 +3,7 @@ import { saveInspection, listInspections } from "@/lib/storage";
 import { notifyInspection } from "@/lib/notify";
 import { loadAllQuestions } from "@/lib/questionStore";
 import { getSupabase } from "@/lib/supabase";
+import { companyFromRequest, missingCompanyColumn } from "@/lib/company";
 import type { Inspection } from "@/lib/types";
 
 /**
@@ -10,11 +11,11 @@ import type { Inspection } from "@/lib/types";
  * the van to the Inactive list until an owner reactivates it. Never blocks
  * the driver's submission.
  */
-async function autoGroundVan(inspection: Inspection): Promise<void> {
+async function autoGroundVan(inspection: Inspection, companyId: string): Promise<void> {
   try {
     const issues = inspection.answers.filter((a) => a.value === "issue");
     if (issues.length === 0) return;
-    const { questions } = await loadAllQuestions();
+    const { questions } = await loadAllQuestions(companyId);
     const grounding = issues
       .map((a) => questions.find((q) => q.id === a.questionId))
       .filter((q) => q && (q.autoInactive ?? q.input === "check"));
@@ -22,12 +23,16 @@ async function autoGroundVan(inspection: Inspection): Promise<void> {
     const supabase = getSupabase();
     if (!supabase) return;
     const labels = grounding.map((q) => q!.category).filter((v, i, arr) => arr.indexOf(v) === i);
-    await supabase.from("vans").upsert({
+    const row = {
       id: inspection.vanId,
       active: false,
       status_reason: `Auto — DVIR safety issue: ${labels.join(", ")} (${inspection.driver.name ?? inspection.driver.raw}, ${new Date(inspection.createdAt).toLocaleDateString("en-US")})`,
       status_changed_at: new Date().toISOString(),
-    });
+    };
+    const { error } = await supabase.from("vans").upsert({ ...row, company_id: companyId });
+    if (error && missingCompanyColumn(error.message)) {
+      await supabase.from("vans").upsert(row);
+    }
   } catch {
     /* grounding must never break a submission */
   }
@@ -38,7 +43,8 @@ export const runtime = "nodejs";
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const vanId = url.searchParams.get("vanId") ?? undefined;
-  const inspections = await listInspections(vanId);
+  const companyId = await companyFromRequest(request);
+  const inspections = await listInspections(companyId, vanId);
   return NextResponse.json({ inspections });
 }
 
@@ -72,8 +78,9 @@ export async function POST(request: Request) {
     comments: [],
   };
 
+  const companyId = await companyFromRequest(request);
   try {
-    await saveInspection(inspection);
+    await saveInspection(inspection, companyId);
   } catch (e) {
     return NextResponse.json(
       { error: e instanceof Error ? e.message : "Save failed" },
@@ -83,7 +90,10 @@ export async function POST(request: Request) {
 
   // Instant alerts + DVIR auto-grounding; never blocks the driver's submission.
   if (inspection.status !== "passed") {
-    await Promise.all([notifyInspection(inspection), autoGroundVan(inspection)]);
+    await Promise.all([
+      notifyInspection(inspection, companyId),
+      autoGroundVan(inspection, companyId),
+    ]);
   }
 
   return NextResponse.json({ inspection }, { status: 201 });

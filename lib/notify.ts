@@ -1,4 +1,5 @@
 import { getSupabase } from "./supabase";
+import { DEFAULT_COMPANY_ID, loadSetting, saveSetting } from "./company";
 import type { AlertSettings, Inspection } from "./types";
 
 /**
@@ -25,26 +26,17 @@ export function smsConfigured(): boolean {
   return !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_FROM);
 }
 
-export async function loadAlertSettings(): Promise<{ settings: AlertSettings; persisted: boolean }> {
+export async function loadAlertSettings(
+  companyId: string = DEFAULT_COMPANY_ID
+): Promise<{ settings: AlertSettings; persisted: boolean }> {
   const supabase = getSupabase();
   if (!supabase) return { settings: { ...DEFAULT_ALERTS }, persisted: false };
-  const { data, error } = await supabase
-    .from("app_settings")
-    .select("value")
-    .eq("key", "alerts")
-    .maybeSingle();
-  if (error) return { settings: { ...DEFAULT_ALERTS }, persisted: false };
-  return {
-    settings: { ...DEFAULT_ALERTS, ...((data?.value as Partial<AlertSettings>) ?? {}) },
-    persisted: true,
-  };
+  const { value, persisted } = await loadSetting<Partial<AlertSettings>>(companyId, "alerts");
+  return { settings: { ...DEFAULT_ALERTS, ...(value ?? {}) }, persisted };
 }
 
-export async function saveAlertSettings(settings: AlertSettings): Promise<void> {
-  const supabase = getSupabase();
-  if (!supabase) throw new Error("Database not configured.");
-  const { error } = await supabase.from("app_settings").upsert({ key: "alerts", value: settings });
-  if (error) throw new Error(`Save failed: ${error.message}`);
+export async function saveAlertSettings(companyId: string, settings: AlertSettings): Promise<void> {
+  await saveSetting(companyId, "alerts", settings);
 }
 
 export async function sendEmail(to: string[], subject: string, text: string): Promise<void> {
@@ -87,9 +79,12 @@ async function sendSms(to: string[], body: string): Promise<void> {
 }
 
 /** Fire instant alerts for a just-submitted flagged/incomplete inspection. */
-export async function notifyInspection(i: Inspection): Promise<void> {
+export async function notifyInspection(
+  i: Inspection,
+  companyId: string = DEFAULT_COMPANY_ID
+): Promise<void> {
   try {
-    const { settings } = await loadAlertSettings();
+    const { settings } = await loadAlertSettings(companyId);
     const issues = i.answers.filter((a) => a.value === "issue");
     const trip = i.tripType === "pre" ? "Pre-Trip" : "Post-Trip";
     const statusLabel = i.status === "failed_inspection" ? "INCOMPLETE INSPECTION" : "ISSUES REPORTED";

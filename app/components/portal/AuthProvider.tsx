@@ -27,7 +27,11 @@ interface AuthValue {
   ready: boolean;
   user: PortalUser | null;
   tenant: Tenant;
+  /** True when signed in with a real per-user account (not the shared password). */
+  realSession: boolean;
   login: (email: string) => Promise<{ ok: boolean; error?: string }>;
+  /** Sign in: real account first, legacy shared-password flow as fallback. */
+  loginWithPassword: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
   logout: () => void;
   hasPermission: (key: PermissionKey) => boolean;
   /** Whether the signed-in user may open a portal tab (section). */
@@ -41,26 +45,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
   const [user, setUser] = useState<PortalUser | null>(null);
   const [tenant, setTenant] = useState<Tenant>(DEMO_TENANT);
+  const [realSession, setRealSession] = useState(false);
 
   useEffect(() => {
-    try {
-      const savedUser = localStorage.getItem(SESSION_KEY);
-      if (savedUser) setUser(JSON.parse(savedUser));
-      const savedTenant = localStorage.getItem(TENANT_KEY);
-      if (savedTenant) {
-        // The saved override carries white-label branding only — module
-        // entitlements always come from the platform, otherwise a stale
-        // browser copy would keep newly enabled modules "coming soon".
-        setTenant({
-          ...DEMO_TENANT,
-          ...JSON.parse(savedTenant),
-          enabledModules: DEMO_TENANT.enabledModules,
-        });
+    const restoreLegacy = () => {
+      try {
+        const savedUser = localStorage.getItem(SESSION_KEY);
+        if (savedUser) setUser(JSON.parse(savedUser));
+        const savedTenant = localStorage.getItem(TENANT_KEY);
+        if (savedTenant) {
+          // The saved override carries white-label branding only — module
+          // entitlements always come from the platform, otherwise a stale
+          // browser copy would keep newly enabled modules "coming soon".
+          setTenant({
+            ...DEMO_TENANT,
+            ...JSON.parse(savedTenant),
+            enabledModules: DEMO_TENANT.enabledModules,
+          });
+        }
+      } catch {
+        /* ignore corrupt storage */
       }
-    } catch {
-      /* ignore corrupt storage */
-    }
-    setReady(true);
+    };
+
+    // Real account session first (httpOnly cookie), legacy storage otherwise.
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.user) {
+          setUser(d.user as PortalUser);
+          if (d.tenant) setTenant(d.tenant as Tenant);
+          setRealSession(true);
+        } else {
+          restoreLegacy();
+        }
+      })
+      .catch(restoreLegacy)
+      .finally(() => setReady(true));
   }, []);
 
   const establish = (u: PortalUser) => {
@@ -102,9 +123,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { ok: false, error: "No account found for that email." };
   };
 
+  const loginWithPassword: AuthValue["loginWithPassword"] = async (email, password) => {
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.user) {
+        setUser(data.user as PortalUser);
+        if (data.tenant) setTenant(data.tenant as Tenant);
+        setRealSession(true);
+        return { ok: true };
+      }
+      if (res.ok && data.legacy) {
+        // Shared team password accepted — resolve the account the legacy way.
+        return login(email);
+      }
+      return { ok: false, error: data.error ?? "Incorrect email or password." };
+    } catch {
+      return { ok: false, error: "Something went wrong. Please try again." };
+    }
+  };
+
   const logout = () => {
     setUser(null);
+    setRealSession(false);
     localStorage.removeItem(SESSION_KEY);
+    fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
   };
 
   const hasPermission: AuthValue["hasPermission"] = (key) => {
@@ -127,11 +174,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem(TENANT_KEY, JSON.stringify(persistable));
       return next;
     });
+    // Real accounts persist branding to the company record (server keeps it
+    // for every device); fire-and-forget, browser copy already updated.
+    if (realSession) {
+      fetch("/api/company", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: patch.name,
+          themeColor: patch.themeColor,
+          logoDataUri: patch.logoDataUri,
+        }),
+      }).catch(() => {});
+    }
   };
 
   const value = useMemo<AuthValue>(
-    () => ({ ready, user, tenant, login, logout, hasPermission, canSeeSection, updateTenant }),
-    [ready, user, tenant] // eslint-disable-line react-hooks/exhaustive-deps
+    () => ({
+      ready,
+      user,
+      tenant,
+      realSession,
+      login,
+      loginWithPassword,
+      logout,
+      hasPermission,
+      canSeeSection,
+      updateTenant,
+    }),
+    [ready, user, tenant, realSession] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

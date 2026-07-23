@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { DRIVER_COOKIE, GATE_COOKIE, verifyDriver, verifyGate } from "@/lib/gate";
+import {
+  DRIVER_COOKIE,
+  GATE_COOKIE,
+  USER_COOKIE,
+  verifyDriver,
+  verifyGate,
+  verifyUser,
+} from "@/lib/gate";
 
 /**
  * Access control (Next.js 16 "proxy", formerly middleware).
@@ -20,6 +27,7 @@ function isPublic(pathname: string, method: string): boolean {
     pathname === "/contact" ||
     pathname === "/driver" ||
     pathname.startsWith("/api/gate") ||
+    pathname.startsWith("/api/auth") || // login/logout/me self-guard their data
     pathname.startsWith("/api/driver-gate") ||
     // Vercel cron endpoint — the route enforces CRON_SECRET / team session itself.
     pathname === "/api/recap" ||
@@ -42,7 +50,9 @@ export async function proxy(request: NextRequest) {
 
   if (isPublic(pathname, request.method)) return NextResponse.next();
 
-  const team = await verifyGate(request.cookies.get(GATE_COOKIE)?.value);
+  const team =
+    (await verifyGate(request.cookies.get(GATE_COOKIE)?.value)) ||
+    (await verifyUser(request.cookies.get(USER_COOKIE)?.value)) !== null;
   if (team) return NextResponse.next();
 
   if (isDriverAllowed(pathname)) {

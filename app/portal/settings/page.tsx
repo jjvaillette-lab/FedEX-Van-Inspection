@@ -751,8 +751,88 @@ function ManagersSection({ brand }: { brand: string }) {
 /* Page                                                                */
 /* ------------------------------------------------------------------ */
 
+function AccountSection({ brand }: { brand: string }) {
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const submit = async () => {
+    if (next !== confirm) {
+      setMsg({ ok: false, text: "New passwords don't match." });
+      return;
+    }
+    setBusy(true);
+    setMsg(null);
+    try {
+      const res = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword: current, newPassword: next }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Password change failed.");
+      setMsg({ ok: true, text: "Password updated. Use it next time you sign in." });
+      setCurrent("");
+      setNext("");
+      setConfirm("");
+    } catch (e) {
+      setMsg({ ok: false, text: e instanceof Error ? e.message : "Password change failed." });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const inputCls =
+    "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500";
+
+  return (
+    <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6">
+      <h2 className="text-lg font-bold text-slate-900">Your password</h2>
+      <p className="mt-1 text-sm text-slate-500">
+        Change the password for your personal sign-in.
+      </p>
+      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+        <div>
+          <label className="mb-1 block text-xs font-medium text-slate-500">Current password</label>
+          <input type="password" value={current} onChange={(e) => setCurrent(e.target.value)} className={inputCls} />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs font-medium text-slate-500">New password</label>
+          <input type="password" value={next} onChange={(e) => setNext(e.target.value)} className={inputCls} />
+        </div>
+        <div>
+          <label className="mb-1 block text-xs font-medium text-slate-500">Confirm new password</label>
+          <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} className={inputCls} />
+        </div>
+      </div>
+      {msg && (
+        <p
+          className={`mt-3 rounded-lg px-3 py-2 text-sm ${
+            msg.ok ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"
+          }`}
+        >
+          {msg.text}
+        </p>
+      )}
+      <button
+        onClick={submit}
+        disabled={busy || !current || next.length < 8}
+        className="mt-4 rounded-lg px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
+        style={{ background: brand }}
+      >
+        {busy ? "Saving…" : "Change password"}
+      </button>
+      {next.length > 0 && next.length < 8 && (
+        <p className="mt-2 text-xs text-slate-400">New password must be at least 8 characters.</p>
+      )}
+    </section>
+  );
+}
+
 export default function SettingsPage() {
-  const { user, tenant, updateTenant, hasPermission } = useAuth();
+  const { user, tenant, updateTenant, hasPermission, realSession } = useAuth();
   const isOwner = user?.role === "owner" || !!user?.admin;
   const canBranding = isOwner || hasPermission("settings.branding");
   const canUsers = isOwner || hasPermission("users.manage");
@@ -853,6 +933,8 @@ export default function SettingsPage() {
           </div>
         </section>
       )}
+
+      {realSession && <AccountSection brand={tenant.themeColor} />}
 
       {isOwner && <DriverDevicesSection brand={tenant.themeColor} />}
 

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabase } from "@/lib/supabase";
+import { companyFromRequest, loadSetting, missingCompanyColumn, saveSetting } from "@/lib/company";
 import { DEFAULT_OPS, type DriverDay, type OpsSettings } from "@/lib/opstats";
 
 export const runtime = "nodejs";
@@ -66,25 +67,31 @@ const toRow = (d: DriverDay) => ({
   on_duty_hours: Number(d.onDutyHours) || 0,
 });
 
-async function loadSettings(): Promise<OpsSettings> {
-  const supabase = getSupabase();
-  if (!supabase) return { ...DEFAULT_OPS };
-  const { data } = await supabase.from("app_settings").select("value").eq("key", "opstats").maybeSingle();
-  return { ...DEFAULT_OPS, ...((data?.value as Partial<OpsSettings>) ?? {}) };
+async function loadOps(companyId: string): Promise<OpsSettings> {
+  const { value } = await loadSetting<Partial<OpsSettings>>(companyId, "opstats");
+  return { ...DEFAULT_OPS, ...(value ?? {}) };
 }
 
 export async function GET(request: Request) {
   const supabase = getSupabase();
-  const settings = await loadSettings();
+  const companyId = await companyFromRequest(request);
+  const settings = await loadOps(companyId);
   if (!supabase) return NextResponse.json({ rows: [], settings, persisted: false });
 
   const url = new URL(request.url);
   const from = url.searchParams.get("from");
   const to = url.searchParams.get("to");
-  let query = supabase.from("driver_stats").select("*").order("date", { ascending: false });
-  if (from) query = query.gte("date", from);
-  if (to) query = query.lte("date", to);
-  const { data, error } = await query;
+  const build = (scoped: boolean) => {
+    let query = supabase.from("driver_stats").select("*").order("date", { ascending: false });
+    if (scoped) query = query.eq("company_id", companyId);
+    if (from) query = query.gte("date", from);
+    if (to) query = query.lte("date", to);
+    return query;
+  };
+  let { data, error } = await build(true);
+  if (error && missingCompanyColumn(error.message)) {
+    ({ data, error } = await build(false));
+  }
   if (error) {
     return NextResponse.json({ rows: [], settings, persisted: false, error: MIGRATION_MSG });
   }
@@ -108,9 +115,18 @@ export async function POST(request: Request) {
   if (!supabase) return NextResponse.json({ error: "Database not configured." }, { status: 503 });
 
   // Re-importing a day overwrites that driver's row for the day.
-  const { error } = await supabase
+  const companyId = await companyFromRequest(request);
+  let { error } = await supabase
     .from("driver_stats")
-    .upsert(body.rows.map(toRow), { onConflict: "date,driver" });
+    .upsert(
+      body.rows.map((r) => ({ ...toRow(r), company_id: companyId })),
+      { onConflict: "company_id,date,driver" }
+    );
+  if (error && /company_id|schema cache|column|constraint|conflict/i.test(error.message)) {
+    ({ error } = await supabase
+      .from("driver_stats")
+      .upsert(body.rows.map(toRow), { onConflict: "date,driver" }));
+  }
   if (error) {
     return NextResponse.json(
       { error: /relation|schema cache/i.test(error.message) ? MIGRATION_MSG : `Import failed: ${error.message}` },
@@ -144,8 +160,14 @@ export async function PUT(request: Request) {
     payroll: s.payroll === "biweekly" ? "biweekly" : "weekly",
     payrollAnchor: /^\d{4}-\d{2}-\d{2}$/.test(s.payrollAnchor ?? "") ? s.payrollAnchor : DEFAULT_OPS.payrollAnchor,
   };
-  const { error } = await supabase.from("app_settings").upsert({ key: "opstats", value: clean });
-  if (error) return NextResponse.json({ error: `Save failed: ${error.message}` }, { status: 500 });
+  try {
+    await saveSetting(await companyFromRequest(request), "opstats", clean);
+  } catch (e) {
+    return NextResponse.json(
+      { error: e instanceof Error ? e.message : "Save failed" },
+      { status: 500 }
+    );
+  }
   return NextResponse.json({ ok: true, settings: clean });
 }
 
@@ -154,7 +176,15 @@ export async function DELETE(request: Request) {
   if (!date) return NextResponse.json({ error: "Missing date" }, { status: 400 });
   const supabase = getSupabase();
   if (!supabase) return NextResponse.json({ error: "Database not configured." }, { status: 503 });
-  const { error } = await supabase.from("driver_stats").delete().eq("date", date);
+  const companyId = await companyFromRequest(request);
+  let { error } = await supabase
+    .from("driver_stats")
+    .delete()
+    .eq("date", date)
+    .eq("company_id", companyId);
+  if (error && missingCompanyColumn(error.message)) {
+    ({ error } = await supabase.from("driver_stats").delete().eq("date", date));
+  }
   if (error) return NextResponse.json({ error: `Delete failed: ${error.message}` }, { status: 500 });
   return NextResponse.json({ ok: true });
 }
