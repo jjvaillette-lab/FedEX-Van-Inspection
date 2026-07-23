@@ -238,6 +238,13 @@ export const IconGauge = (p: IconProps) => (
   </Base>
 );
 
+export const IconPhone = (p: IconProps) => (
+  <Base {...p}>
+    <rect x="7" y="2" width="10" height="20" rx="2.5" />
+    <path d="M11 18h2" />
+  </Base>
+);
+
 /** Map used by the module registry (lib/tenant.ts stores icon keys, not emoji). */
 export const MODULE_ICONS: Record<string, (p: IconProps) => React.ReactElement> = {
   van: IconVan,

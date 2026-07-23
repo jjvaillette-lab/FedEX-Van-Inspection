@@ -27,6 +27,7 @@ const SLOT_LABEL: Record<string, string> = Object.fromEntries([
   ["optional_2", "Optional 2"],
   ["optional_3", "Optional 3"],
   ["optional_4", "Optional 4"],
+  ["signature", "Driver Signature"],
 ]);
 
 const EXTERIOR_SLOTS: PhotoSlot[] = ["driver_side", "back", "passenger_side", "front"];

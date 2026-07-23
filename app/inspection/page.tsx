@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import BarcodeScanner from "@/app/components/BarcodeScanner";
 import PhotoCapture from "@/app/components/PhotoCapture";
 import MultiPhotoCapture from "@/app/components/MultiPhotoCapture";
+import SignaturePad from "@/app/components/SignaturePad";
 import { useAuth } from "@/app/components/portal/AuthProvider";
 import { PHOTO_STEPS, INTERIOR_STEPS, OPTIONAL_SLOTS, type PhotoStep } from "@/lib/questions";
 import { parseDriverBarcode } from "@/lib/driver";
@@ -31,6 +32,7 @@ type Step =
   | "questions"
   | "photos"
   | "optional"
+  | "sign" // DVIR certification + electronic signature
   | "submitting"
   | "done";
 
@@ -63,6 +65,7 @@ export default function InspectionPage() {
   const [photoDescriptions, setPhotoDescriptions] = useState<Partial<Record<PhotoSlot, string>>>({});
   const [optionalIndex, setOptionalIndex] = useState(0);
 
+  const [signature, setSignature] = useState<string | null>(null);
   const [result, setResult] = useState<SubmitResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirmFail, setConfirmFail] = useState(false);
@@ -79,6 +82,7 @@ export default function InspectionPage() {
     setPhotos({});
     setPhotoDescriptions({});
     setOptionalIndex(0);
+    setSignature(null);
     try {
       const res = await fetch(`/api/questions?trip=${trip}`);
       const data = await res.json();
@@ -172,6 +176,10 @@ export default function InspectionPage() {
         url: photos[slot]!,
         description: photoDescriptions[slot]?.trim() || undefined,
       }));
+    // The driver's electronic signature rides with the report.
+    if (signature && !opts.failed) {
+      photoList.push({ slot: "signature", url: signature, description: undefined });
+    }
 
     try {
       const res = await fetch("/api/inspections", {
@@ -194,7 +202,7 @@ export default function InspectionPage() {
       setStep("done");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Submit failed");
-      setStep(opts.failed ? "questions" : "photos");
+      setStep(opts.failed ? "questions" : "sign");
     }
   }
 
@@ -203,7 +211,8 @@ export default function InspectionPage() {
   const tripLabel = tripType === "pre" ? "Pre-Trip" : "Post-Trip";
   const progress =
     step === "driver" ? 12 : step === "van" ? 25 : step === "trip_check" ? 32 :
-    step === "questions" ? 55 : step === "photos" ? 75 : step === "optional" ? 90 : 100;
+    step === "questions" ? 50 : step === "photos" ? 70 : step === "optional" ? 85 :
+    step === "sign" ? 95 : 100;
 
   /* ---------- render ---------- */
 
@@ -217,7 +226,7 @@ export default function InspectionPage() {
           {step === "driver" || step === "van" ? "Van Inspection" : `${tripLabel} Inspection`}
           {cycle > 1 && step !== "driver" && step !== "van" ? ` · #${cycle}` : ""}
         </span>
-        {(step === "questions" || step === "photos" || step === "optional") ? (
+        {(step === "questions" || step === "photos" || step === "optional" || step === "sign") ? (
           <button onClick={() => setConfirmFail(true)} className="text-xs font-medium text-red-300">
             End early
           </button>
@@ -523,10 +532,51 @@ export default function InspectionPage() {
             )}
 
             <button
-              onClick={() => void submit({ failed: false })}
-              className="mt-6 w-full rounded-xl bg-emerald-600 py-4 text-lg font-semibold text-white"
+              onClick={() => setStep("sign")}
+              className="mt-6 w-full rounded-xl bg-sky-600 py-4 text-lg font-semibold text-white"
             >
-              {optionalTaken > 0 ? "Finish & Submit" : "Skip & Submit"}
+              {optionalTaken > 0 ? "Continue to Sign-off" : "Skip — Continue to Sign-off"}
+            </button>
+            {error && <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
+          </div>
+        )}
+
+        {/* STEP — DVIR certification & electronic signature */}
+        {step === "sign" && (
+          <div>
+            <h1 className="text-xl font-bold text-slate-900">Driver certification</h1>
+            <p className="mt-1 text-sm text-slate-500">
+              Review and sign to complete your {tripLabel.toLowerCase()} report for Van {vanId}.
+            </p>
+
+            <div className="mt-4 rounded-xl border border-slate-200 bg-white p-4 text-sm leading-relaxed text-slate-700">
+              By signing below and submitting, I certify that I have inspected this vehicle in
+              accordance with FMCSA regulations <strong>49 CFR 396.11 / 396.13</strong> and that
+              this Driver Vehicle Inspection Report (DVIR) is true and complete
+              {flagged.length > 0
+                ? ", including the defects I have reported above."
+                : ", and I found no defects affecting safe operation."}{" "}
+              I understand that my electronic signature below constitutes my{" "}
+              <strong>legal signature</strong> on this report.
+            </div>
+
+            <div className="mt-4">
+              <SignaturePad onChange={setSignature} />
+            </div>
+
+            <div className="mt-3 flex items-baseline justify-between text-sm">
+              <span className="font-semibold text-slate-800">{driver?.name ?? driver?.raw}</span>
+              <span className="tabular-nums text-slate-500">
+                {new Date().toLocaleDateString("en-US")}
+              </span>
+            </div>
+
+            <button
+              disabled={!signature}
+              onClick={() => void submit({ failed: false })}
+              className="mt-5 w-full rounded-xl bg-emerald-600 py-4 text-lg font-semibold text-white disabled:opacity-40"
+            >
+              {signature ? "Sign & Submit Report" : "Sign above to submit"}
             </button>
             {error && <p className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">{error}</p>}
           </div>

@@ -54,7 +54,9 @@ export type PhotoSlot =
   | "optional_1"
   | "optional_2"
   | "optional_3"
-  | "optional_4";
+  | "optional_4"
+  /** Driver's electronic signature on the DVIR (PNG from the signature pad). */
+  | "signature";
 
 export interface InspectionPhoto {
   slot: PhotoSlot;

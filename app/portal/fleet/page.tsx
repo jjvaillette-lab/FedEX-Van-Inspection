@@ -5,8 +5,8 @@ import { useAuth } from "@/app/components/portal/AuthProvider";
 import {
   IconChart,
   IconChevronRight,
-  IconClipboard,
   IconFile,
+  IconPhone,
   IconQr,
 } from "@/app/components/icons";
 
@@ -17,11 +17,11 @@ export default function FleetInspectionModule() {
 
   const actions = [
     {
-      title: "Start Van Check",
-      desc: "Run a pre or post-trip inspection: scan driver, scan van, checklist, photos.",
-      href: "/inspection",
-      icon: IconClipboard,
-      show: true,
+      title: "Add DVIR to Device",
+      desc: "Set up a driver phone: QR code, install steps, and the Van Check home-screen app.",
+      href: "/portal/fleet/device",
+      icon: IconPhone,
+      show: isOwner || hasPermission("inspection.edit_questions"),
     },
     {
       title: "Inspection Review",
