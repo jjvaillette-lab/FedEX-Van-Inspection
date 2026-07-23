@@ -89,28 +89,34 @@ export async function GET() {
   return NextResponse.json({ vans, persisted, ...(persisted ? {} : { error: MIGRATION_MSG }) });
 }
 
-/** PUT: create/update a van's details. */
+/** PUT: create/update van details — a single van, or {vans: [...]} for bulk import. */
 export async function PUT(request: Request) {
-  const body = (await request.json().catch(() => ({}))) as Partial<VanRecord>;
-  if (!body.id?.trim()) return NextResponse.json({ error: "Van ID is required." }, { status: 400 });
+  const body = (await request.json().catch(() => ({}))) as Partial<VanRecord> & {
+    vans?: Partial<VanRecord>[];
+  };
+  const list = Array.isArray(body.vans) ? body.vans : [body];
+  const rows = list
+    .filter((v) => v.id?.trim())
+    .map((v) => ({
+      id: v.id!.trim(),
+      vin: v.vin?.trim() || null,
+      make: v.make?.trim() || null,
+      model: v.model?.trim() || null,
+      year: String(v.year ?? "").trim() || null,
+      plate: v.plate?.trim() || null,
+      ...(typeof v.active === "boolean" ? { active: v.active } : {}),
+    }));
+  if (rows.length === 0) return NextResponse.json({ error: "Van ID is required." }, { status: 400 });
   const supabase = getSupabase();
   if (!supabase) return NextResponse.json({ error: "Database not configured." }, { status: 503 });
-  const { error } = await supabase.from("vans").upsert({
-    id: body.id.trim(),
-    vin: body.vin?.trim() || null,
-    make: body.make?.trim() || null,
-    model: body.model?.trim() || null,
-    year: body.year?.trim() || null,
-    plate: body.plate?.trim() || null,
-    ...(typeof body.active === "boolean" ? { active: body.active } : {}),
-  });
+  const { error } = await supabase.from("vans").upsert(rows);
   if (error) {
     return NextResponse.json(
       { error: /relation|schema cache/i.test(error.message) ? MIGRATION_MSG : `Save failed: ${error.message}` },
       { status: 500 }
     );
   }
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, saved: rows.length });
 }
 
 /** PATCH: activate / inactivate a van. */

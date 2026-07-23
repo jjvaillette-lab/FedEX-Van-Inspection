@@ -30,6 +30,7 @@ export default function VanListPage() {
   // every data refresh after an edit.
   const alertShownRef = useRef(false);
   const [editVan, setEditVan] = useState<VanRecord | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
   const [maintVan, setMaintVan] = useState<VanRecord | null>(null);
   const [statusVan, setStatusVan] = useState<VanRecord | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -128,8 +129,10 @@ export default function VanListPage() {
             </button>
             <button
               onClick={() => setStatusVan(v)}
-              className={`flex-1 rounded-lg py-2 text-xs font-bold text-white ${
-                v.active ? "bg-rose-600 hover:bg-rose-700" : "bg-emerald-600 hover:bg-emerald-700"
+              className={`flex-1 rounded-lg py-2 text-xs font-semibold ${
+                v.active
+                  ? "border border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100"
+                  : "bg-emerald-600 font-bold text-white hover:bg-emerald-700"
               }`}
             >
               {v.active ? "Inactivate" : "Activate"}
@@ -158,15 +161,23 @@ export default function VanListPage() {
           </p>
         </div>
         {canManage && (
-          <button
-            onClick={() =>
-              setEditVan({ id: "", active: true, unregistered: true })
-            }
-            className="rounded-lg px-3.5 py-2 text-sm font-semibold text-white"
-            style={{ background: brand }}
-          >
-            + Add van
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setImportOpen(true)}
+              className="rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            >
+              Import CSV / Excel
+            </button>
+            <button
+              onClick={() =>
+                setEditVan({ id: "", active: true, unregistered: true })
+              }
+              className="rounded-lg px-3.5 py-2 text-sm font-semibold text-white"
+              style={{ background: brand }}
+            >
+              + Add van
+            </button>
+          </div>
         )}
       </div>
 
@@ -273,6 +284,17 @@ export default function VanListPage() {
           onClose={() => setEditVan(null)}
           onSaved={() => {
             setEditVan(null);
+            reload();
+          }}
+        />
+      )}
+      {importOpen && (
+        <ImportVansModal
+          brand={brand}
+          onClose={() => setImportOpen(false)}
+          onDone={() => {
+            setImportOpen(false);
+            setMessage(null);
             reload();
           }}
         />
@@ -400,6 +422,203 @@ function EditVanModal({
               {busy ? "Saving…" : "Save van"}
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- bulk import (CSV / Excel) ---------- */
+
+interface ParsedVan {
+  id: string;
+  vin?: string;
+  make?: string;
+  model?: string;
+  year?: string;
+  plate?: string;
+}
+
+const TEMPLATE_CSV =
+  "Van Number,VIN,Year,Make,Model,License Plate\nVan 12,1FTBW2CM5NKA12345,2022,Ford,Transit 250,ABC-1234\nVan 13,,2021,Ram,ProMaster,\n";
+
+function ImportVansModal({
+  brand,
+  onClose,
+  onDone,
+}: {
+  brand: string;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const [parsed, setParsed] = useState<ParsedVan[] | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const parseFile = async (file?: File) => {
+    if (!file) return;
+    setErr(null);
+    setFileName(file.name);
+    try {
+      const XLSX = await import("xlsx");
+      const wb = XLSX.read(await file.arrayBuffer(), { cellDates: false });
+      const grid = XLSX.utils.sheet_to_json<unknown[]>(wb.Sheets[wb.SheetNames[0]], {
+        header: 1,
+      }) as unknown[][];
+
+      const cell = (v: unknown) => String(v ?? "").trim();
+      // Find the header row: the first row with a van/unit/vehicle-ish column.
+      const isIdHeader = (h: string) => /van|unit|vehicle|^id$|number|#/i.test(h);
+      let headerAt = -1;
+      for (let i = 0; i < Math.min(grid.length, 10); i++) {
+        if ((grid[i] ?? []).some((c) => isIdHeader(cell(c)))) {
+          headerAt = i;
+          break;
+        }
+      }
+      if (headerAt < 0) {
+        setParsed(null);
+        setErr('No van column found. The first row should have headers — at minimum a "Van Number" column.');
+        return;
+      }
+
+      const headers = (grid[headerAt] ?? []).map((c) => cell(c).toLowerCase());
+      const col = (re: RegExp) => headers.findIndex((h) => re.test(h));
+      const idCol = (() => {
+        const exact = col(/^(van( ?(number|#|id|no\.?))?|unit( ?(number|#|no\.?))?|vehicle( ?(number|#|id|no\.?))?|id)$/);
+        return exact >= 0 ? exact : headers.findIndex((h) => isIdHeader(h) && !/vin/.test(h));
+      })();
+      const vinCol = col(/vin/);
+      const yearCol = col(/year/);
+      const makeCol = col(/make/);
+      const modelCol = col(/model/);
+      const plateCol = col(/plate|license|tag/);
+
+      const byId = new Map<string, ParsedVan>();
+      for (const row of grid.slice(headerAt + 1)) {
+        const id = cell(row?.[idCol]);
+        if (!id) continue;
+        byId.set(id, {
+          id,
+          vin: vinCol >= 0 ? cell(row[vinCol]).toUpperCase() : undefined,
+          year: yearCol >= 0 ? cell(row[yearCol]).replace(/\.0$/, "") : undefined,
+          make: makeCol >= 0 ? cell(row[makeCol]) : undefined,
+          model: modelCol >= 0 ? cell(row[modelCol]) : undefined,
+          plate: plateCol >= 0 ? cell(row[plateCol]).toUpperCase() : undefined,
+        });
+      }
+      const vans = [...byId.values()];
+      if (vans.length === 0) {
+        setParsed(null);
+        setErr("No van rows found under the header row.");
+        return;
+      }
+      setParsed(vans);
+    } catch {
+      setParsed(null);
+      setErr("Couldn't read that file. Save it as .xlsx or .csv and try again (Numbers: File → Export To).");
+    }
+  };
+
+  const submit = async () => {
+    if (!parsed) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      const res = await fetch("/api/vans", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ vans: parsed }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Import failed");
+      onDone();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Import failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/60 px-5">
+      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6">
+        <h2 className="text-lg font-bold text-slate-900">Import vans</h2>
+        <p className="mt-1.5 text-sm text-slate-600">
+          Upload a .csv or Excel file with one van per row. Only a{" "}
+          <strong>Van Number</strong> column is required — VIN, Year, Make, Model, and License
+          Plate are matched automatically when present. Existing vans with the same number are
+          updated.
+        </p>
+        <a
+          href={`data:text/csv;charset=utf-8,${encodeURIComponent(TEMPLATE_CSV)}`}
+          download="van-import-template.csv"
+          className="mt-2 inline-block text-sm font-semibold underline"
+          style={{ color: brand }}
+        >
+          Download a blank template
+        </a>
+
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".csv,.xlsx,.xls"
+          className="hidden"
+          onChange={(e) => parseFile(e.target.files?.[0])}
+        />
+        <button
+          onClick={() => fileRef.current?.click()}
+          className="mt-4 w-full rounded-lg border border-dashed border-slate-300 py-6 text-sm font-medium text-slate-600 hover:bg-slate-50"
+        >
+          {fileName ? `Selected: ${fileName} — choose a different file` : "Choose a .csv or .xlsx file"}
+        </button>
+
+        {err && <p className="mt-3 rounded bg-red-50 px-3 py-2 text-sm text-red-700">{err}</p>}
+
+        {parsed && (
+          <div className="mt-4">
+            <p className="text-sm font-semibold text-slate-800">
+              {parsed.length} van{parsed.length === 1 ? "" : "s"} ready to import
+            </p>
+            <div className="mt-2 max-h-48 overflow-y-auto rounded-lg border border-slate-200">
+              <table className="w-full text-left text-[12px]">
+                <thead className="bg-slate-50 text-[10.5px] uppercase tracking-wide text-slate-400">
+                  <tr>
+                    <th className="px-2.5 py-1.5">Van</th>
+                    <th className="px-2.5 py-1.5">Year / Make / Model</th>
+                    <th className="px-2.5 py-1.5">Plate</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {parsed.map((v) => (
+                    <tr key={v.id} className="border-t border-slate-100">
+                      <td className="px-2.5 py-1.5 font-semibold text-slate-800">{v.id}</td>
+                      <td className="px-2.5 py-1.5 text-slate-600">
+                        {[v.year, v.make, v.model].filter(Boolean).join(" ") || "—"}
+                      </td>
+                      <td className="px-2.5 py-1.5 text-slate-600">{v.plate || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        <div className="mt-5 grid grid-cols-2 gap-3">
+          <button onClick={onClose} className="rounded-lg border border-slate-300 py-2.5 text-sm font-semibold text-slate-700">
+            Cancel
+          </button>
+          <button
+            onClick={submit}
+            disabled={busy || !parsed}
+            className="rounded-lg py-2.5 text-sm font-semibold text-white disabled:opacity-40"
+            style={{ background: brand }}
+          >
+            {busy ? "Importing…" : `Import ${parsed ? parsed.length : ""} van${parsed && parsed.length === 1 ? "" : "s"}`}
+          </button>
         </div>
       </div>
     </div>
