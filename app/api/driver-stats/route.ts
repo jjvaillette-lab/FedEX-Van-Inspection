@@ -56,7 +56,12 @@ const toRow = (d: DriverDay) => ({
   act_del_pkgs: Math.round(Number(d.actDelPkgs) || 0),
   act_pu_stops: Math.round(Number(d.actPuStops) || 0),
   act_pu_pkgs: Math.round(Number(d.actPuPkgs) || 0),
-  miles: Number(d.miles) || 0,
+  // Odometer readings sometimes land in the Miles column — cap at a
+  // plausible daily figure and treat the rest as missing.
+  miles: (() => {
+    const n = Number(d.miles) || 0;
+    return n > 600 || n < 0 ? 0 : n;
+  })(),
   on_road_hours: Number(d.onRoadHours) || 0,
   on_duty_hours: Number(d.onDutyHours) || 0,
 });

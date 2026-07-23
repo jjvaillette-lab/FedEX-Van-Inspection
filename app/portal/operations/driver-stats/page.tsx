@@ -112,13 +112,64 @@ export default function DriverStatsPage() {
   /* ---------- scorecards ---------- */
   const scorecards = useMemo(() => {
     const aggs = aggregateByDriver(inRange, settings);
-    return aggs
-      .map((a) => {
-        const m = metricsOf(a);
-        const rank = rankOf(m);
-        return { ...a, m, rank };
-      })
-      .sort((a, b) => b.rank.score - a.rank.score);
+    return aggs.map((a) => {
+      const m = metricsOf(a);
+      const rank = rankOf(m);
+      return { ...a, m, rank };
+    });
+  }, [inRange, settings]);
+
+  /* ---------- sorting ---------- */
+  type SortKey = "driver" | "days" | "pkgs" | "delPct" | "puPct" | "stops" | "sph" | "util" | "miles" | "bonus" | "score";
+  const [sortKey, setSortKey] = useState<SortKey>("score");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const sortVal = (s: (typeof scorecards)[number], k: SortKey): number | string =>
+    k === "driver" ? s.driver :
+    k === "days" ? s.days :
+    k === "pkgs" ? s.actDelPkgs :
+    k === "delPct" ? (s.m.deliveryPct ?? -1) :
+    k === "puPct" ? (s.m.pickupPct ?? -1) :
+    k === "stops" ? s.stops :
+    k === "sph" ? (s.m.stopsPerHour ?? -1) :
+    k === "util" ? (s.m.utilization ?? -1) :
+    k === "miles" ? s.miles :
+    k === "bonus" ? s.bonus : s.rank.score;
+  const sorted = useMemo(() => {
+    const arr = [...scorecards].sort((a, b) => {
+      const va = sortVal(a, sortKey);
+      const vb = sortVal(b, sortKey);
+      const cmp = typeof va === "string" ? va.localeCompare(vb as string) : (va as number) - (vb as number);
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+    return arr;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scorecards, sortKey, sortDir]);
+  const onSort = (k: SortKey) => {
+    if (k === sortKey) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else {
+      setSortKey(k);
+      setSortDir(k === "driver" ? "asc" : "desc");
+    }
+  };
+
+  /* ---------- company totals for the selected period ---------- */
+  const company = useMemo(() => {
+    const t = {
+      vscanPkgs: 0, actDelPkgs: 0, puStops: 0, actPuStops: 0,
+      stops: 0, miles: 0, onRoadHours: 0, onDutyHours: 0, bonus: 0,
+    };
+    for (const r of inRange) {
+      t.vscanPkgs += r.vscanPkgs;
+      t.actDelPkgs += r.actDelPkgs;
+      t.puStops += r.puStops;
+      t.actPuStops += r.actPuStops;
+      t.stops += combinedStops(r);
+      t.miles += r.miles;
+      t.onRoadHours += r.onRoadHours;
+      t.onDutyHours += r.onDutyHours;
+      t.bonus += dailyBonus(r, settings);
+    }
+    return { ...t, days: new Set(inRange.map((r) => r.date)).size, m: metricsOf(t) };
   }, [inRange, settings]);
 
   const exportCsv = () => {
@@ -280,21 +331,64 @@ export default function DriverStatsPage() {
           <table className="w-full min-w-[900px] text-sm">
             <thead>
               <tr className="border-b border-slate-100 bg-slate-50 text-[11px] font-bold uppercase tracking-wide text-slate-400">
-                <th className="px-3 py-2 text-left">Driver</th>
-                <th className="px-2 py-2 text-right">Days</th>
-                <th className="px-2 py-2 text-right">Delivered / Disp.</th>
-                <th className="px-2 py-2 text-right">Del %</th>
-                <th className="px-2 py-2 text-right">PU %</th>
-                <th className="px-2 py-2 text-right">Stops</th>
-                <th className="px-2 py-2 text-right">Stops/Hr</th>
-                <th className="px-2 py-2 text-right">Road/Duty</th>
-                <th className="px-2 py-2 text-right">Miles</th>
-                <th className="px-2 py-2 text-right">Bonus</th>
-                <th className="px-3 py-2 text-right">Rank</th>
+                {(
+                  [
+                    { k: "driver", label: "Driver", left: true },
+                    { k: "days", label: "Days" },
+                    { k: "pkgs", label: "Delivered / Disp." },
+                    { k: "delPct", label: "Del %" },
+                    { k: "puPct", label: "PU %" },
+                    { k: "stops", label: "Stops" },
+                    { k: "sph", label: "Stops/Hr" },
+                    { k: "util", label: "Road/Duty" },
+                    { k: "miles", label: "Miles" },
+                    { k: "bonus", label: "Bonus" },
+                    { k: "score", label: "Rank" },
+                  ] as { k: SortKey; label: string; left?: boolean }[]
+                ).map((c) => (
+                  <th key={c.k} className={`px-2 py-1 ${c.left ? "text-left pl-3" : "text-right"}`}>
+                    <button
+                      onClick={() => onSort(c.k)}
+                      className={`inline-flex items-center gap-0.5 rounded px-1 py-1 uppercase hover:text-slate-600 ${
+                        sortKey === c.k ? "text-slate-700" : ""
+                      }`}
+                      style={sortKey === c.k ? { color: brand } : undefined}
+                      title={`Sort by ${c.label}`}
+                    >
+                      {c.label}
+                      <span className="text-[9px]">{sortKey === c.k ? (sortDir === "desc" ? "▼" : "▲") : "▽"}</span>
+                    </button>
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {scorecards.map((s) => (
+              {/* Company totals for the selected period — pinned above drivers */}
+              <tr className="border-b-2 border-slate-200 font-semibold" style={{ background: `${brand}10` }}>
+                <td className="px-3 py-2.5 text-slate-900">
+                  COMPANY TOTAL
+                  <span className="ml-2 text-xs font-medium text-slate-500">
+                    {scorecards.length} driver{scorecards.length === 1 ? "" : "s"}
+                  </span>
+                </td>
+                <td className="px-2 py-2.5 text-right tabular-nums text-slate-600">{company.days}</td>
+                <td className="px-2 py-2.5 text-right tabular-nums text-slate-900">
+                  {company.actDelPkgs.toLocaleString()} / {company.vscanPkgs.toLocaleString()}
+                </td>
+                <td className="px-2 py-2.5 text-right tabular-nums text-slate-900">{pct(company.m.deliveryPct)}</td>
+                <td className="px-2 py-2.5 text-right tabular-nums text-slate-600">{pct(company.m.pickupPct)}</td>
+                <td className="px-2 py-2.5 text-right tabular-nums text-slate-900">{company.stops.toLocaleString()}</td>
+                <td className="px-2 py-2.5 text-right tabular-nums text-slate-900">
+                  {company.m.stopsPerHour != null ? company.m.stopsPerHour.toFixed(1) : "—"}
+                </td>
+                <td className="px-2 py-2.5 text-right tabular-nums text-slate-600">{pct(company.m.utilization)}</td>
+                <td className="px-2 py-2.5 text-right tabular-nums text-slate-600">
+                  {Math.round(company.miles).toLocaleString()}
+                </td>
+                <td className="px-2 py-2.5 text-right tabular-nums text-slate-900">{money(company.bonus)}</td>
+                <td className="px-3 py-2.5" />
+              </tr>
+              {sorted.map((s) => (
                 <>
                   <tr
                     key={s.driver}
@@ -325,29 +419,45 @@ export default function DriverStatsPage() {
                     <tr key={`${s.driver}-detail`} className="border-b border-slate-100 bg-slate-50/60">
                       <td colSpan={11} className="px-4 py-3">
                         <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-slate-400">
-                          Daily breakdown{s.vehicles ? ` · Vehicles: ${s.vehicles}` : ""} · Pay-period bonus to date: {money(periodBonus.get(s.driver) ?? 0)}
+                          Daily breakdown · Pay-period bonus to date: {money(periodBonus.get(s.driver) ?? 0)}
                         </p>
-                        <div className="space-y-1">
+                        <div className="space-y-1.5">
                           {inRange
                             .filter((r) => r.driver === s.driver)
                             .sort((a, b) => b.date.localeCompare(a.date))
                             .map((r) => {
                               const stops = combinedStops(r);
                               const b = dailyBonus(r, settings);
+                              const chips: [string, string][] = [
+                                ["Pkgs Dispatched", r.vscanPkgs.toLocaleString()],
+                                ["Pkgs Delivered", r.actDelPkgs.toLocaleString()],
+                                ["Del Stops", r.actDelStops.toLocaleString()],
+                                ["PU Stops", r.actPuStops.toLocaleString()],
+                                ["Total Stops", stops.toLocaleString()],
+                                ["Stops/Hr", r.onRoadHours > 0 ? (stops / r.onRoadHours).toFixed(1) : "—"],
+                                ["Miles", r.miles.toFixed(0)],
+                                ["Road Hrs", r.onRoadHours.toFixed(1)],
+                                ["Duty Hrs", r.onDutyHours.toFixed(1)],
+                              ];
                               return (
-                                <div key={r.date} className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded border border-slate-200 bg-white px-3 py-1.5 text-xs">
-                                  <span className="w-20 font-semibold tabular-nums text-slate-700">{displayDate(r.date)}</span>
-                                  <span className="tabular-nums text-slate-500">{r.actDelPkgs}/{r.vscanPkgs} pkgs</span>
-                                  <span className="tabular-nums text-slate-500">{stops} stops</span>
-                                  <span className="tabular-nums text-slate-500">
-                                    {r.onRoadHours > 0 ? `${(stops / r.onRoadHours).toFixed(1)}/hr` : "—"}
+                                <div key={r.date} className="flex flex-wrap items-center gap-1.5 rounded border border-slate-200 bg-white px-2.5 py-2">
+                                  <span className="mr-1.5 w-16 text-xs font-bold tabular-nums text-slate-700">
+                                    {displayDate(r.date)}
                                   </span>
-                                  <span className="tabular-nums text-slate-400">{r.miles.toFixed(0)} mi</span>
-                                  <span className="tabular-nums text-slate-400">
-                                    road {r.onRoadHours.toFixed(1)}h · duty {r.onDutyHours.toFixed(1)}h
-                                  </span>
-                                  <span className="ml-auto font-semibold tabular-nums" style={{ color: b > 0 ? brand : "#94a3b8" }}>
-                                    {b > 0 ? `+${money(b)}` : "—"}
+                                  {chips.map(([label, value]) => (
+                                    <span key={label} className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2 py-1">
+                                      <span className="text-[9.5px] font-semibold uppercase tracking-wide text-slate-400">{label}</span>
+                                      <span className="text-xs font-bold tabular-nums text-slate-800">{value}</span>
+                                    </span>
+                                  ))}
+                                  <span
+                                    className="ml-auto inline-flex items-center gap-1.5 rounded-md border px-2 py-1"
+                                    style={b > 0 ? { borderColor: `${brand}55`, background: `${brand}12` } : { borderColor: "#e2e8f0" }}
+                                  >
+                                    <span className="text-[9.5px] font-semibold uppercase tracking-wide text-slate-400">Bonus</span>
+                                    <span className="text-xs font-bold tabular-nums" style={{ color: b > 0 ? brand : "#94a3b8" }}>
+                                      {b > 0 ? `+${money(b)}` : "—"}
+                                    </span>
                                   </span>
                                 </div>
                               );
@@ -415,6 +525,12 @@ const NUM = (v: unknown): number => {
   if (v == null || v === "") return 0;
   const n = Number(String(v).replace(/,/g, ""));
   return isNaN(n) ? 0 : Math.round(n);
+};
+/** Some worksheets carry odometer readings in the Miles column — a delivery
+ *  day can't plausibly exceed this, so treat larger values as missing. */
+const MILES = (v: unknown): number => {
+  const n = NUM(v);
+  return n > 600 ? 0 : n;
 };
 
 function UploadModal({
@@ -518,7 +634,7 @@ function UploadModal({
           e.actDelPkgs += NUM(row[idx.actDelPkgs]);
           e.actPuStops += NUM(row[idx.actPuStops]);
           e.actPuPkgs += NUM(row[idx.actPuPkgs]);
-          e.miles += NUM(row[idx.miles]);
+          e.miles += MILES(row[idx.miles]);
           e.onRoadHours = Math.round((e.onRoadHours + HOURS(row[idx.road])) * 100) / 100;
           e.onDutyHours = Math.round((e.onDutyHours + HOURS(row[idx.duty])) * 100) / 100;
           agg.set(key, e);
