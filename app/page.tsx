@@ -13,7 +13,6 @@ import {
   IconUsers,
   IconVan,
   IconWrench,
-  IconXCircle,
 } from "@/app/components/icons";
 
 /* ---------------- content ---------------- */
@@ -71,20 +70,31 @@ const SERVICES = [
   },
 ];
 
-const OLD_WAY = [
-  "Paper checklists riding around in every van",
-  "Photos scattered across drivers' personal phones",
-  "Hours each week compiling, filing, and chasing paperwork",
-  "Hunting for records at audit or claim time",
-  "Issues surfacing after the van is already on the road",
-];
-
-const NEW_WAY = [
-  "Drivers scan a QR code — the checklist and photos file themselves",
-  "Every inspection stored in the cloud: searchable by van, driver, or date",
-  "One-click reports and exports, ready when you are",
-  "Photo evidence and permanent records for every claim and audit",
-  "Failed checks flag management instantly",
+const PAIN_POINTS = [
+  {
+    q: "Spending 2–3 hours a day on van inspections and filing?",
+    a: "We cut it to almost zero. Drivers scan, shoot, and submit — the paperwork files itself.",
+  },
+  {
+    q: "Compiling FedEx spreadsheets to track packages and driver performance?",
+    a: "Our system does it automatically — counts, trends, and driver performance without the copy-paste.",
+  },
+  {
+    q: "Paying an admin to manage team performance manually?",
+    a: "The portal removes the need for additional staff — a subscription that typically pays for itself in the first month.",
+  },
+  {
+    q: "Trying to figure out when that van damage happened?",
+    a: "Twice-daily photo inspections are filed in the cloud by van and driver — look back to any day, anytime.",
+  },
+  {
+    q: "Scrambling to pull records for an audit or insurance claim?",
+    a: "Every inspection, photo, and receipt is searchable in seconds — not a weekend in the filing cabinet.",
+  },
+  {
+    q: "Chasing drivers to confirm their checks got done?",
+    a: "Missed or failed checks flag management on their own. No texts, no follow-ups.",
+  },
 ];
 
 const CUSTOMERS = [
@@ -173,47 +183,22 @@ export default function Landing() {
             </h2>
             <p className="mt-3 text-slate-600">
               Most contractors don&apos;t lose their week to driving — they lose it to
-              administration: collecting inspection sheets, transcribing them, chasing the ones
-              that never came in, filing photos, compiling reports, and digging it all back up
-              months later. That&apos;s the overhead we remove.
+              administration: paperwork, spreadsheets, chasing confirmations, and paying extra
+              hands just to keep up. Sound familiar?
             </p>
           </div>
 
-          <div className="mt-10 grid gap-6 lg:grid-cols-2">
-            <div className="rounded-2xl border border-slate-200 bg-white p-6">
-              <div className="flex items-center gap-2">
-                <IconXCircle size={20} className="text-red-500" />
-                <h3 className="font-bold text-slate-900">A paper van audit today</h3>
+          <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {PAIN_POINTS.map((p) => (
+              <div key={p.q} className="rounded-2xl border border-slate-200 bg-white p-6">
+                <h3 className="font-bold leading-snug" style={{ color: navy }}>{p.q}</h3>
+                <p className="mt-2.5 flex gap-2 text-sm text-slate-600">
+                  <IconCheckCircle size={17} className="mt-0.5 shrink-0" style={{ color: PLATFORM.amber }} />
+                  <span>{p.a}</span>
+                </p>
               </div>
-              <ul className="mt-4 space-y-2.5">
-                {OLD_WAY.map((t) => (
-                  <li key={t} className="flex gap-2.5 text-sm text-slate-600">
-                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-red-400" />
-                    {t}
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="rounded-2xl border-2 p-6" style={{ borderColor: `${navy}33`, background: "white" }}>
-              <div className="flex items-center gap-2">
-                <IconCheckCircle size={20} style={{ color: navy }} />
-                <h3 className="font-bold" style={{ color: navy }}>The same audit on Last Mile Assist</h3>
-              </div>
-              <ul className="mt-4 space-y-2.5">
-                {NEW_WAY.map((t) => (
-                  <li key={t} className="flex gap-2.5 text-sm text-slate-700">
-                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: PLATFORM.amber }} />
-                    {t}
-                  </li>
-                ))}
-              </ul>
-            </div>
+            ))}
           </div>
-
-          <p className="mx-auto mt-8 max-w-2xl text-center text-slate-600">
-            The compiling, filing, and chasing drop to <strong style={{ color: navy }}>virtually zero</strong> —
-            after your subscription, that time comes back to running the business.
-          </p>
 
           <div className="mt-10 grid gap-8 text-center sm:grid-cols-3">
             {[
