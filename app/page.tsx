@@ -23,9 +23,14 @@ const SERVICES = [
     bucket: "Fleet",
     items: [
       {
-        icon: IconVan,
+        icon: IconClipboard,
         t: "Vehicle Inspections",
-        d: "Pre & post-trip checks with guided photo evidence. Incomplete or failed checks flag management automatically — before the van leaves the yard.",
+        d: "Pre & post-trip checks with guided photo evidence and a legal driver sign-off. Incomplete or failed checks flag management automatically — before the van leaves the yard.",
+      },
+      {
+        icon: IconVan,
+        t: "Van List & Auto-Grounding",
+        d: "Every van's folder — VIN, plate, current mileage pulled from the latest inspection, and its full maintenance file. A safety issue on a driver's check grounds the van automatically until you clear it.",
       },
       {
         icon: IconWrench,
@@ -37,6 +42,11 @@ const SERVICES = [
   {
     bucket: "Operations",
     items: [
+      {
+        icon: IconChart,
+        t: "Driver Stats & Scorecards",
+        d: "Drop in your daily worksheets and get scorecards by day, week, or season — delivery success, stops per hour, tier rankings, and per-stop bonuses tallied to your exact pay periods.",
+      },
       {
         icon: IconRoute,
         t: "Route Monitoring",
@@ -100,10 +110,10 @@ const PAIN_POINTS = [
 
 const CUSTOMERS = [
   { name: "Stratford Delivery Corp", blurb: "Daily pre & post-trip inspections across the fleet, with photo evidence on every van." },
-  { name: "Prime Transport", blurb: "Replaced paper inspection binders with one searchable, permanent record." },
-  { name: "Lelit Logistics", blurb: "Catches vehicle issues before vans leave the yard each morning." },
-  { name: "PTRN Transport", blurb: "Maintenance and repair history tracked van by van." },
-  { name: "Abex", blurb: "Route and delivery reporting pulled into a single dashboard." },
+  { name: "Prime Transport", blurb: "Driver scorecards built straight from the daily worksheets — rankings and stop bonuses with zero spreadsheet time." },
+  { name: "Lelit Logistics", blurb: "A safety issue on the morning check grounds the van automatically — nothing questionable leaves the yard." },
+  { name: "PTRN Transport", blurb: "Every repair, receipt, and cost filed by van — they know exactly what each vehicle costs to keep on the road." },
+  { name: "Abex", blurb: "A recap email every morning at six — yesterday's checks, driver numbers, and anything flagged, before the first route rolls." },
 ];
 
 function initials(name: string) {
@@ -317,9 +327,11 @@ export default function Landing() {
                   <div className="mt-3 space-y-1 text-[10.5px] font-medium">
                     <div className="rounded px-2 py-1 font-semibold" style={{ background: `${navy}14`, color: navy }}>Overview</div>
                     <p className="px-2 pt-1 text-[8.5px] font-bold uppercase tracking-wider text-slate-300">Operations</p>
+                    <div className="px-2 py-1 text-slate-500">Driver Stats</div>
                     <div className="px-2 py-1 text-slate-500">Dispatch</div>
                     <p className="px-2 pt-1 text-[8.5px] font-bold uppercase tracking-wider text-slate-300">Fleet</p>
                     <div className="px-2 py-1 text-slate-500">Vehicle Inspections</div>
+                    <div className="px-2 py-1 text-slate-500">Van List</div>
                     <div className="px-2 py-1 text-slate-500">Maintenance &amp; Costs</div>
                     <p className="px-2 pt-1 text-[8.5px] font-bold uppercase tracking-wider text-slate-300">Human Resources</p>
                     <div className="px-2 py-1 text-slate-500">Employee Management</div>
@@ -331,10 +343,10 @@ export default function Landing() {
                   <p className="text-sm font-bold text-slate-900">Atlas Delivery Co</p>
                   <div className="mt-3 grid grid-cols-2 gap-2">
                     {[
-                      { t: "Vehicle Inspections", s: "42 checks this week", icon: IconVan },
+                      { t: "Vehicle Inspections", s: "42 checks this week", icon: IconClipboard },
+                      { t: "Driver Stats", s: "31 drivers ranked", icon: IconChart },
+                      { t: "Van List", s: "16 active · 1 grounded", icon: IconVan },
                       { t: "Maintenance & Costs", s: "3 repairs logged", icon: IconWrench },
-                      { t: "Dispatch", s: "14 routes today", icon: IconRoute },
-                      { t: "Employee Management", s: "23 team members", icon: IconUsers },
                     ].map((c) => (
                       <div key={c.t} className="rounded-lg border border-slate-200 p-2.5">
                         <div className="flex items-center justify-between">
@@ -441,7 +453,7 @@ export default function Landing() {
               <div className="mt-3 overflow-hidden rounded-lg border border-slate-200 text-[11.5px]">
                 <div className="flex items-center gap-3 px-3 py-2.5">
                   <span className="w-14 font-semibold text-slate-800">Van 04</span>
-                  <span className="w-20 text-slate-500">T. Alvarez</span>
+                  <span className="w-20 text-slate-500">M. Brooks</span>
                   <span className="hidden flex-1 text-slate-400 sm:block">Today · 6:48 AM</span>
                   <span className="rounded bg-sky-50 px-1.5 py-0.5 text-[9.5px] font-bold text-sky-700">PRE</span>
                   <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[9.5px] font-semibold text-emerald-700">Passed</span>
@@ -502,6 +514,135 @@ export default function Landing() {
               <p className="mt-2 text-[10px] text-slate-400">
                 Sort by date, van, or driver — drill into any check for photos, issues, and resolutions.
               </p>
+            </div>
+          </div>
+
+          {/* Driver Stats + Van List mocks */}
+          <div className="mt-8 grid items-start gap-8 lg:grid-cols-2">
+            {/* Driver Stats mock */}
+            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
+              <div className="flex items-center gap-1.5 border-b border-slate-100 bg-slate-50 px-4 py-2.5">
+                <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
+                <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
+                <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
+                <span className="ml-3 text-[11px] text-slate-400">portal.lastmileassist.com/driver-stats</span>
+              </div>
+              <div className="p-4 sm:p-5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="text-[10px] text-slate-400">Portal / Operations</p>
+                    <p className="text-sm font-bold text-slate-900">Driver Stats</p>
+                  </div>
+                  <div className="flex rounded-lg border border-slate-300 p-0.5 text-[10px] font-medium">
+                    {["Day", "Week", "6-Week", "All Time"].map((v, i) => (
+                      <span
+                        key={v}
+                        className={`rounded-md px-2 py-0.5 ${i === 1 ? "text-white" : "text-slate-500"}`}
+                        style={i === 1 ? { background: navy } : undefined}
+                      >
+                        {v}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-3 overflow-hidden rounded-lg border border-slate-200 text-[11px]">
+                  <div className="flex items-center gap-2 bg-slate-100 px-3 py-2 font-bold text-slate-700">
+                    <span className="flex-1">COMPANY TOTAL</span>
+                    <span className="w-14 text-right tabular-nums">96.9%</span>
+                    <span className="hidden w-16 text-right tabular-nums sm:block">19.8/hr</span>
+                    <span className="w-16 text-right tabular-nums">$1,842</span>
+                    <span className="w-14" />
+                  </div>
+                  {[
+                    { d: "M. Brooks", del: "98.6%", sph: "22.4/hr", b: "$212.85", tier: "Elite", cls: "border-emerald-200 bg-emerald-50 text-emerald-700" },
+                    { d: "R. Patel", del: "96.1%", sph: "20.2/hr", b: "$154.20", tier: "Strong", cls: "border-sky-200 bg-sky-50 text-sky-700" },
+                    { d: "K. Turner", del: "93.4%", sph: "17.8/hr", b: "$88.65", tier: "Good", cls: "border-amber-200 bg-amber-50 text-amber-800" },
+                  ].map((r) => (
+                    <div key={r.d} className="flex items-center gap-2 border-t border-slate-100 px-3 py-2">
+                      <span className="flex-1 font-semibold text-slate-800">{r.d}</span>
+                      <span className="w-14 text-right tabular-nums text-slate-600">{r.del}</span>
+                      <span className="hidden w-16 text-right tabular-nums text-slate-600 sm:block">{r.sph}</span>
+                      <span className="w-16 text-right font-semibold tabular-nums text-slate-800">{r.b}</span>
+                      <span className={`w-14 rounded-full border px-1.5 py-0.5 text-center text-[9px] font-bold uppercase ${r.cls}`}>
+                        {r.tier}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-2 text-[10px] text-slate-400">
+                  Built from your daily worksheets — delivery success, stops per hour, and per-stop
+                  bonuses tallied to your pay periods. A recap email lands every morning at 6.
+                </p>
+              </div>
+            </div>
+
+            {/* Van List mock */}
+            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
+              <div className="flex items-center gap-1.5 border-b border-slate-100 bg-slate-50 px-4 py-2.5">
+                <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
+                <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
+                <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
+                <span className="ml-3 text-[11px] text-slate-400">portal.lastmileassist.com/van-list</span>
+              </div>
+              <div className="p-4 sm:p-5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="text-[10px] text-slate-400">Portal / Fleet</p>
+                    <p className="text-sm font-bold text-slate-900">Van List</p>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="rounded-lg border border-emerald-300 px-2 py-1 text-[10px] font-bold text-emerald-700">
+                      Active Vans (16) ▾
+                    </span>
+                    <span className="rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[9.5px] font-semibold text-rose-700">
+                      1 van out of service
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
+                  <div className="rounded-lg border border-slate-200 p-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[12px] font-bold text-slate-900">Van 06</span>
+                      <span className="rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[8.5px] font-bold uppercase text-emerald-700">
+                        Active
+                      </span>
+                    </div>
+                    <p className="mt-0.5 text-[9.5px] text-slate-400">2022 Ford Transit 250</p>
+                    <p className="mt-1.5 text-[10px] text-slate-600">
+                      Mileage <span className="font-bold text-slate-900">84,112</span>
+                      <span className="text-slate-400"> · from today&apos;s check</span>
+                    </p>
+                    <div className="mt-2 flex gap-1.5 text-[9px] font-semibold">
+                      <span className="flex-1 rounded border border-slate-300 py-1 text-center text-slate-600">Maint</span>
+                      <span className="flex-1 rounded border border-slate-300 py-1 text-center text-slate-600">Edit info</span>
+                      <span className="flex-1 rounded bg-rose-600 py-1 text-center text-white">Inactivate</span>
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border border-rose-200 p-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[12px] font-bold text-slate-900">Van 11</span>
+                      <span className="rounded-full border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-[8.5px] font-bold uppercase text-rose-700">
+                        Inactive
+                      </span>
+                    </div>
+                    <p className="mt-1.5 rounded border border-rose-100 bg-rose-50 px-1.5 py-1 text-[9px] text-rose-800">
+                      Auto — safety issue on today&apos;s check: Brakes
+                    </p>
+                    <div className="mt-2 flex gap-1.5 text-[9px] font-semibold">
+                      <span className="flex-1 rounded border border-slate-300 py-1 text-center text-slate-600">Maint</span>
+                      <span className="flex-1 rounded border border-slate-300 py-1 text-center text-slate-600">Edit info</span>
+                      <span className="flex-1 rounded bg-emerald-600 py-1 text-center text-white">Activate</span>
+                    </div>
+                  </div>
+                </div>
+                <p className="mt-2 text-[10px] text-slate-400">
+                  A safety issue on a driver&apos;s check grounds the van automatically — you see
+                  why, fix it, and put it back in service with one click.
+                </p>
+              </div>
             </div>
           </div>
         </div>
