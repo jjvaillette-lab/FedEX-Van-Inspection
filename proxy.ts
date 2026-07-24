@@ -26,6 +26,8 @@ function isPublic(pathname: string, method: string): boolean {
     pathname === "/login" ||
     pathname === "/contact" ||
     pathname === "/driver" ||
+    // Offline shell for driver phones — a static file, safe to serve publicly.
+    pathname === "/sw.js" ||
     pathname.startsWith("/api/gate") ||
     pathname.startsWith("/api/auth") || // login/logout/me self-guard their data
     pathname.startsWith("/api/driver-gate") ||
