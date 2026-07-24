@@ -45,25 +45,109 @@ interface Candidate {
   notes: string | null;
 }
 
-/** Seed question set built from the owner's real Indeed posting. */
-const DRIVER_TEMPLATE = {
-  title: "FedEx Ground Delivery Driver",
-  pay: "From $160/day + $1.35 per stop after 120",
-  location: "Stratford, CT — Terminal: 495 Lordship Blvd",
-  description:
-    "Full-time delivery driver. No CDL required. 5–6 days a week including at least one weekend day. Paid training, PTO, weekly pay.",
-  questions: [
-    "Are you 21 years of age or older?",
-    "Do you have a valid driver's license? Tell me about your driving record — any accidents or violations in the last 3 years?",
-    "Do you have at least 1 year of delivery driving experience in the last 2 years? Tell me about where and what you delivered.",
-    "This role requires passing a pre-employment background check and drug screening. Are you able to meet that requirement?",
-    "The job involves lifting packages up to 100–150 lbs and climbing in and out of the truck all day. Are you comfortable with those physical demands?",
-    "The schedule is 5–6 days a week and must include at least one weekend day. Does that work for you?",
-    "Have you driven a cargo van or box truck before? What's the largest vehicle you've driven regularly?",
-    "Tell me about a time you dealt with a difficult customer or a delivery that went wrong — what did you do?",
-    "When could you start, and is there anything that would limit your availability for paid training?",
-  ],
-};
+/** Built-in role templates — sample questions the owner can add/remove freely. */
+interface RoleTemplate {
+  title: string;
+  blurb: string;
+  pay: string;
+  location: string;
+  description: string;
+  questions: string[];
+}
+
+const ROLE_TEMPLATES: RoleTemplate[] = [
+  {
+    title: "Delivery Driver",
+    blurb: "The frontline route driver — vetted for record, experience, and the physical job.",
+    pay: "From $160/day + $1.35 per stop after 120",
+    location: "",
+    description:
+      "Full-time delivery driver. No CDL required. 5–6 days a week including at least one weekend day. Paid training, PTO, weekly pay.",
+    questions: [
+      "Are you 21 years of age or older?",
+      "Do you have a valid driver's license? Tell me about your driving record — any accidents or violations in the last 3 years?",
+      "Do you have at least 1 year of delivery driving experience in the last 2 years? Tell me about where and what you delivered.",
+      "This role requires passing a pre-employment background check and drug screening. Are you able to meet that requirement?",
+      "The job involves lifting packages up to 100–150 lbs and climbing in and out of the truck all day. Are you comfortable with those physical demands?",
+      "The schedule is 5–6 days a week and must include at least one weekend day. Does that work for you?",
+      "Have you driven a cargo van or box truck before? What's the largest vehicle you've driven regularly?",
+      "Tell me about a time you dealt with a difficult customer or a delivery that went wrong — what did you do?",
+      "When could you start, and is there anything that would limit your availability for paid training?",
+    ],
+  },
+  {
+    title: "Operations Manager - Transportation",
+    blurb: "Runs the daily operation — routes covered, drivers managed, numbers hit.",
+    pay: "",
+    location: "",
+    description:
+      "Oversees daily route operations, driver scheduling and performance, and terminal coordination for a last-mile delivery operation.",
+    questions: [
+      "Tell me about your experience managing daily operations for a delivery or transportation business — how large a team and how many routes or vehicles?",
+      "Have you worked in or around a FedEx Ground, Amazon DSP, or similar last-mile contractor operation? In what role?",
+      "Walk me through how you'd handle a morning where three drivers call out and every route still has to run.",
+      "What experience do you have with route planning, dispatch, or scheduling software?",
+      "How do you coach a driver whose delivery numbers have been slipping? Give a real example if you have one.",
+      "This role starts early at the terminal and includes occasional weekend coverage — does that schedule work for you?",
+      "Describe something you changed in a past operation that measurably improved on-time performance or reduced cost.",
+      "When could you start, and what compensation range are you looking for?",
+    ],
+  },
+  {
+    title: "Fleet Manager",
+    blurb: "Keeps every van safe, maintained, and on the road.",
+    pay: "",
+    location: "",
+    description:
+      "Owns vehicle maintenance scheduling, DOT compliance, repair vendor relationships, and fleet cost control.",
+    questions: [
+      "Tell me about your experience maintaining or managing a fleet — how many vehicles and what types?",
+      "What's your process for staying ahead of preventive maintenance instead of reacting to breakdowns?",
+      "How familiar are you with DOT inspection requirements and DVIRs? Tell me about keeping a fleet compliant.",
+      "Describe a time a vehicle problem threatened to take routes down — what did you do?",
+      "How do you decide whether to repair a vehicle, keep it running, or pull it out of service?",
+      "Tell me about your experience working with repair shops or parts vendors — how do you keep costs honest?",
+      "Are you comfortable tracking maintenance, costs, and vehicle status in software?",
+      "When could you start?",
+    ],
+  },
+  {
+    title: "Bookkeeper",
+    blurb: "Keeps the money side clean — settlements, payroll, and the books.",
+    pay: "",
+    location: "",
+    description:
+      "Handles weekly bookkeeping for a delivery contractor: payroll, settlement reconciliation, vendor bills, and clean monthly books.",
+    questions: [
+      "Tell me about your bookkeeping experience — how many years, and for what kinds of businesses?",
+      "Which accounting software have you used (QuickBooks, Xero, etc.) and how deep does that experience go?",
+      "Have you run weekly payroll before? For roughly how many employees, and through what system?",
+      "Walk me through how you reconcile a bank statement when something doesn't match.",
+      "Have you worked with contractor settlements, fleet costs, or per-route revenue before?",
+      "How do you make sure deadlines like payroll taxes and vendor payments never slip?",
+      "This role can start part-time — what weekly availability are you looking for?",
+      "When could you start?",
+    ],
+  },
+  {
+    title: "Human Resources",
+    blurb: "Owns hiring, onboarding, and keeping the paperwork audit-ready.",
+    pay: "",
+    location: "",
+    description:
+      "Runs hiring and onboarding for a high-turnover driver workforce, keeps personnel records compliant, and handles employee relations.",
+    questions: [
+      "Tell me about your HR experience — hiring, onboarding, and day-to-day employee relations.",
+      "Have you hired for high-turnover hourly roles like drivers or warehouse staff? What actually worked to keep seats filled?",
+      "Walk me through your onboarding process for getting a new hire road-ready fast — paperwork, screenings, first week.",
+      "How do you handle an employee complaint or a dispute between two employees? Give an example.",
+      "What experience do you have keeping personnel files and required employment records organized and compliant?",
+      "Have you worked with DOT driver qualification files? (Not required — it's a plus.)",
+      "This role is on-site at the terminal — does that work for you?",
+      "When could you start, and what compensation range are you looking for?",
+    ],
+  },
+];
 
 const STATUS_META: Record<string, { label: string; cls: string }> = {
   invited: { label: "Invited", cls: "border-sky-200 bg-sky-50 text-sky-700" },
@@ -89,7 +173,9 @@ export default function HiringPage() {
   const [aiOn, setAiOn] = useState(false);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<string>("all");
-  const [editPos, setEditPos] = useState<Position | "new" | "template" | null>(null);
+  const [editPos, setEditPos] = useState<Position | null>(null);
+  const [newSeed, setNewSeed] = useState<RoleTemplate | "blank" | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [reviewPos, setReviewPos] = useState<Position | null>(null);
@@ -192,16 +278,14 @@ export default function HiringPage() {
       <div className="mt-7 flex items-center justify-between">
         <h2 className="text-sm font-bold uppercase tracking-wide text-slate-500">Positions</h2>
         <div className="flex gap-2">
-          {positions.length === 0 && persisted && (
-            <button
-              onClick={() => setEditPos("template")}
-              className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-            >
-              Use delivery-driver template
-            </button>
-          )}
           <button
-            onClick={() => setEditPos("new")}
+            onClick={() => setPickerOpen(true)}
+            className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+          >
+            New from role template
+          </button>
+          <button
+            onClick={() => setNewSeed("blank")}
             className="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
           >
             <IconPlus size={13} /> New position
@@ -212,7 +296,7 @@ export default function HiringPage() {
         <p className="mt-4 text-sm text-slate-400">Loading…</p>
       ) : positions.length === 0 ? (
         <p className="mt-3 rounded-lg border border-dashed border-slate-300 bg-white px-4 py-8 text-center text-sm text-slate-400">
-          No positions yet — start from the delivery-driver template.
+          No positions yet — start from a role template.
         </p>
       ) : (
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -245,6 +329,23 @@ export default function HiringPage() {
                   className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
                 >
                   Review questions for compliance
+                </button>
+                <button
+                  onClick={async () => {
+                    await fetch("/api/hr/positions", {
+                      method: "PUT",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ id: p.id, active: !p.active }),
+                    });
+                    reload();
+                  }}
+                  className={`rounded-lg border px-3 py-1.5 text-xs font-semibold ${
+                    p.active
+                      ? "border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100"
+                      : "border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                  }`}
+                >
+                  {p.active ? "Turn off" : "Turn on"}
                 </button>
               </div>
             </div>
@@ -332,15 +433,29 @@ export default function HiringPage() {
         </div>
       )}
 
-      {editPos && (
+      {(editPos || newSeed) && (
         <PositionModal
           brand={brand}
-          position={editPos === "new" ? null : editPos === "template" ? null : editPos}
-          template={editPos === "template"}
-          onClose={() => setEditPos(null)}
+          position={editPos}
+          seed={newSeed !== "blank" ? newSeed : null}
+          onClose={() => {
+            setEditPos(null);
+            setNewSeed(null);
+          }}
           onSaved={() => {
             setEditPos(null);
+            setNewSeed(null);
             reload();
+          }}
+        />
+      )}
+      {pickerOpen && (
+        <TemplatePickerModal
+          brand={brand}
+          onClose={() => setPickerOpen(false)}
+          onPick={(tpl) => {
+            setPickerOpen(false);
+            setNewSeed(tpl);
           }}
         />
       )}
@@ -434,17 +549,16 @@ export default function HiringPage() {
 function PositionModal({
   brand,
   position,
-  template,
+  seed,
   onClose,
   onSaved,
 }: {
   brand: string;
   position: Position | null;
-  template: boolean;
+  seed: RoleTemplate | null;
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const seed = template ? DRIVER_TEMPLATE : null;
   const [title, setTitle] = useState(position?.title ?? seed?.title ?? "");
   const [pay, setPay] = useState(position?.pay ?? seed?.pay ?? "");
   const [location, setLocation] = useState(position?.location ?? seed?.location ?? "");
@@ -598,6 +712,53 @@ function PositionModal({
             </button>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- role template picker ---------- */
+
+function TemplatePickerModal({
+  brand,
+  onClose,
+  onPick,
+}: {
+  brand: string;
+  onClose: () => void;
+  onPick: (tpl: RoleTemplate) => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/60 px-5 py-8">
+      <div className="max-h-full w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6">
+        <h3 className="text-lg font-bold text-slate-900">Start from a role template</h3>
+        <p className="mt-1 text-sm text-slate-500">
+          Sample interview questions included — add, remove, or reword anything before saving.
+          Positions can be turned off and on anytime.
+        </p>
+        <div className="mt-4 space-y-2">
+          {ROLE_TEMPLATES.map((t) => (
+            <button
+              key={t.title}
+              onClick={() => onPick(t)}
+              className="w-full rounded-xl border border-slate-200 p-4 text-left transition-shadow hover:shadow-md"
+            >
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="font-bold text-slate-900">{t.title}</span>
+                <span className="shrink-0 text-[11px] font-semibold" style={{ color: brand }}>
+                  {t.questions.length} sample questions
+                </span>
+              </div>
+              <p className="mt-1 text-[12.5px] text-slate-500">{t.blurb}</p>
+            </button>
+          ))}
+        </div>
+        <button
+          onClick={onClose}
+          className="mt-4 w-full rounded-lg border border-slate-300 py-2.5 text-sm font-semibold text-slate-700"
+        >
+          Cancel
+        </button>
       </div>
     </div>
   );
