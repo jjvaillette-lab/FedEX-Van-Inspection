@@ -11,6 +11,8 @@ export interface ReportSchedule {
   type: ReportType;
   cadence: "daily" | "weekly" | "monthly";
   recipients: string[];
+  /** Defaults smartly by cadence: daily → detail, weekly/monthly → summary. */
+  mode?: "summary" | "detail";
 }
 
 const validType = (t: string | null): t is ReportType =>
@@ -28,11 +30,13 @@ export async function GET(request: Request) {
   const type = url.searchParams.get("type");
   if (!validType(type)) return NextResponse.json({ error: "Unknown report type." }, { status: 400 });
   try {
+    const modeParam = url.searchParams.get("mode");
     const report = await buildReport(companyId, type, {
       from: url.searchParams.get("from") ?? undefined,
       to: url.searchParams.get("to") ?? undefined,
       van: url.searchParams.get("van") ?? undefined,
       driver: url.searchParams.get("driver") ?? undefined,
+      mode: modeParam === "summary" || modeParam === "detail" ? modeParam : undefined,
     });
     return NextResponse.json({ report });
   } catch (e) {
@@ -52,6 +56,7 @@ export async function POST(request: Request) {
     van?: string;
     driver?: string;
     recipients?: string[];
+    mode?: "summary" | "detail";
   };
   if (!validType(body.type ?? null)) {
     return NextResponse.json({ error: "Unknown report type." }, { status: 400 });
@@ -70,6 +75,7 @@ export async function POST(request: Request) {
     to: body.to,
     van: body.van,
     driver: body.driver,
+    mode: body.mode === "summary" || body.mode === "detail" ? body.mode : undefined,
   });
   const csv = reportToCsv(report);
   const stamp = new Date().toISOString().slice(0, 10);

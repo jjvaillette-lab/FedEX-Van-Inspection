@@ -25,6 +25,8 @@ interface ReportData {
   rangeLabel: string;
   columns: string[];
   rows: (string | number)[][];
+  rowKinds?: ("data" | "subtotal" | "total")[];
+  mode?: "summary" | "detail";
 }
 
 interface ReportSchedule {
@@ -32,6 +34,7 @@ interface ReportSchedule {
   type: ReportType;
   cadence: "daily" | "weekly" | "monthly";
   recipients: string[];
+  mode?: "summary" | "detail";
 }
 
 const TYPES: { type: ReportType; label: string; desc: string; icon: (p: { size?: number }) => React.ReactElement; dated: boolean }[] = [
@@ -84,6 +87,15 @@ export default function ReportsPage() {
   const [type, setType] = useState<ReportType>("inspections");
   const [from, setFrom] = useState(presetRange("7d").from);
   const [to, setTo] = useState(presetRange("7d").to);
+  const [mode, setMode] = useState<"summary" | "detail">("summary");
+  const [modeTouched, setModeTouched] = useState(false);
+
+  // The brains: multi-day ranges default to a per-driver/van SUMMARY, a
+  // single day defaults to DETAIL — until the owner picks explicitly.
+  const multiDay = from !== to;
+  useEffect(() => {
+    if (!modeTouched) setMode(multiDay ? "summary" : "detail");
+  }, [multiDay, modeTouched]);
   const [van, setVan] = useState("");
   const [driver, setDriver] = useState("");
   const [report, setReport] = useState<ReportData | null>(null);
@@ -111,6 +123,7 @@ export default function ReportsPage() {
     const params = new URLSearchParams({ type });
     if (meta.dated && from) params.set("from", from);
     if (meta.dated && to) params.set("to", to);
+    if (meta.dated) params.set("mode", mode);
     if (van.trim()) params.set("van", van.trim());
     if (driver.trim()) params.set("driver", driver.trim());
     return params;
@@ -158,7 +171,11 @@ export default function ReportsPage() {
       setMessage({ ok: false, text: "Allow pop-ups to export PDF." });
       return;
     }
-    const totals = totalsRow(r);
+    const clientTotals = r.rowKinds?.includes("total") ? null : totalsRow(r);
+    const rowCls = (i: number) => {
+      const kind = r.rowKinds?.[i] ?? "data";
+      return kind === "total" ? ' class="tot"' : kind === "subtotal" ? ' class="subrow"' : "";
+    };
     win.document.write(`<!doctype html><html><head><title>${r.title}</title><style>
       body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#0f172a;margin:32px}
       .bar{height:6px;background:${brand};border-radius:3px;margin-bottom:18px}
@@ -167,15 +184,17 @@ export default function ReportsPage() {
       table{border-collapse:collapse;width:100%;font-size:10.5px}
       th{background:#f1f5f9;text-align:left;padding:6px 8px;border:1px solid #e2e8f0;white-space:nowrap}
       td{padding:5px 8px;border:1px solid #e2e8f0;vertical-align:top}
+      tr.subrow td{font-weight:700;background:#f8fafc}
+      tr.tot td{font-weight:800;background:#eef2f7;border-top:2px solid #cbd5e1}
       tfoot td{font-weight:700;background:#f8fafc}
       @media print{body{margin:12px}}
     </style></head><body>
       <div class="bar"></div>
       <h1>${tenant.name} — ${r.title}</h1>
-      <p class="sub">${r.rangeLabel} · ${r.rows.length} rows · Generated ${new Date().toLocaleString("en-US")} · Last Mile Assist</p>
+      <p class="sub">${r.rangeLabel}${r.mode ? ` · ${r.mode === "summary" ? "Summary" : "Detail"}` : ""} · ${r.rows.length} rows · Generated ${new Date().toLocaleString("en-US")} · Last Mile Assist</p>
       <table><thead><tr>${r.columns.map((c) => `<th>${c}</th>`).join("")}</tr></thead>
-      <tbody>${r.rows.map((row) => `<tr>${row.map((v) => `<td>${String(v ?? "")}</td>`).join("")}</tr>`).join("")}</tbody>
-      ${totals ? `<tfoot><tr>${totals.map((v) => `<td>${v}</td>`).join("")}</tr></tfoot>` : ""}
+      <tbody>${r.rows.map((row, i) => `<tr${rowCls(i)}>${row.map((v) => `<td>${String(v ?? "")}</td>`).join("")}</tr>`).join("")}</tbody>
+      ${clientTotals ? `<tfoot><tr>${clientTotals.map((v) => `<td>${v}</td>`).join("")}</tr></tfoot>` : ""}
       </table></body></html>`);
     win.document.close();
     win.focus();
@@ -193,6 +212,7 @@ export default function ReportsPage() {
           type,
           from: meta.dated ? from : undefined,
           to: meta.dated ? to : undefined,
+          mode: meta.dated ? mode : undefined,
           van: van.trim() || undefined,
           driver: driver.trim() || undefined,
           recipients,
@@ -229,7 +249,11 @@ export default function ReportsPage() {
     }
   };
 
-  const totals = useMemo(() => (report ? totalsRow(report) : null), [report]);
+  // When the engine already appended subtotal/total rows, skip the client footer.
+  const totals = useMemo(
+    () => (report && !report.rowKinds?.includes("total") ? totalsRow(report) : null),
+    [report]
+  );
 
   if (!ready) return null;
   if (!canView) {
@@ -301,6 +325,38 @@ export default function ReportsPage() {
           <p className="text-sm text-slate-500">
             This report is a live snapshot of the fleet — no date range needed.
           </p>
+        )}
+
+        {meta.dated && (
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <span className="text-xs font-bold uppercase tracking-wide text-slate-400">Report style</span>
+            {(
+              [
+                { v: "summary", l: "Summary", d: "one line per driver / van with totals" },
+                { v: "detail", l: "Detail", d: "every day, grouped with subtotals" },
+              ] as const
+            ).map((m) => (
+              <button
+                key={m.v}
+                onClick={() => {
+                  setMode(m.v);
+                  setModeTouched(true);
+                }}
+                className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+                  mode === m.v ? "text-white" : "border-slate-300 text-slate-600 hover:bg-slate-50"
+                }`}
+                style={mode === m.v ? { background: brand, borderColor: brand } : undefined}
+                title={m.d}
+              >
+                {m.l}
+              </button>
+            ))}
+            <span className="text-xs text-slate-400">
+              {mode === "summary"
+                ? "One line per driver / van with range totals."
+                : "Every day, grouped — each driver / van gets its own total."}
+            </span>
+          </div>
         )}
 
         <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -388,15 +444,27 @@ export default function ReportsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {report.rows.map((row, i) => (
-                    <tr key={i} className="border-t border-slate-100">
-                      {row.map((v, j) => (
-                        <td key={j} className="max-w-[280px] truncate px-3 py-1.5 text-slate-700" title={String(v ?? "")}>
-                          {String(v ?? "")}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
+                  {report.rows.map((row, i) => {
+                    const kind = report.rowKinds?.[i] ?? "data";
+                    return (
+                      <tr
+                        key={i}
+                        className={
+                          kind === "total"
+                            ? "border-t-2 border-slate-300 bg-slate-100 font-bold text-slate-900"
+                            : kind === "subtotal"
+                              ? "border-t border-slate-200 bg-slate-50 font-semibold text-slate-800"
+                              : "border-t border-slate-100"
+                        }
+                      >
+                        {row.map((v, j) => (
+                          <td key={j} className="max-w-[280px] truncate px-3 py-1.5" title={String(v ?? "")}>
+                            {String(v ?? "")}
+                          </td>
+                        ))}
+                      </tr>
+                    );
+                  })}
                 </tbody>
                 {totals && (
                   <tfoot className="sticky bottom-0 border-t border-slate-200 bg-slate-50 font-bold text-slate-800">
@@ -464,6 +532,7 @@ function ScheduleSection({
 }) {
   const [newType, setNewType] = useState<ReportType>("driver-stats");
   const [newCadence, setNewCadence] = useState<ReportSchedule["cadence"]>("daily");
+  const [newMode, setNewMode] = useState<"auto" | "summary" | "detail">("auto");
   const [newRecipients, setNewRecipients] = useState("");
 
   const add = () => {
@@ -471,7 +540,13 @@ function ScheduleSection({
     if (recipients.length === 0) return;
     setSchedules([
       ...schedules,
-      { id: `sch_${Date.now()}`, type: newType, cadence: newCadence, recipients },
+      {
+        id: `sch_${Date.now()}`,
+        type: newType,
+        cadence: newCadence,
+        recipients,
+        ...(newMode !== "auto" ? { mode: newMode } : {}),
+      },
     ]);
     setNewRecipients("");
   };
@@ -515,6 +590,9 @@ function ScheduleSection({
               <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold capitalize text-slate-500">
                 {s.cadence}
               </span>
+              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-semibold capitalize text-slate-500">
+                {s.mode ?? (s.cadence === "daily" ? "detail" : "summary")}
+              </span>
               <span className="min-w-0 flex-1 truncate text-xs text-slate-500">
                 → {s.recipients.join(", ")}
               </span>
@@ -547,6 +625,15 @@ function ScheduleSection({
           {CADENCES.map((c) => (
             <option key={c.v} value={c.v}>{c.l}</option>
           ))}
+        </select>
+        <select
+          value={newMode}
+          onChange={(e) => setNewMode(e.target.value as "auto" | "summary" | "detail")}
+          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none"
+        >
+          <option value="auto">Style: auto (daily→detail, weekly/monthly→summary)</option>
+          <option value="summary">Style: summary</option>
+          <option value="detail">Style: detail</option>
         </select>
         <input
           value={newRecipients}

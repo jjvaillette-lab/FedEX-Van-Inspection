@@ -13,6 +13,7 @@ interface ReportSchedule {
   type: ReportType;
   cadence: "daily" | "weekly" | "monthly";
   recipients: string[];
+  mode?: "summary" | "detail";
 }
 
 /** Send this company's scheduled report emails that are due today. */
@@ -49,7 +50,9 @@ async function sendScheduledReports(companyId: string): Promise<number> {
     }
 
     try {
-      const report = await buildReport(companyId, s.type, { from, to });
+      // Daily reports read best in detail; weekly/monthly as per-driver/van summaries.
+      const mode = s.mode ?? (s.cadence === "daily" ? "detail" : "summary");
+      const report = await buildReport(companyId, s.type, { from, to, mode });
       const csv = reportToCsv(report);
       await sendEmail(
         s.recipients,

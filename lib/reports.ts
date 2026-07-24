@@ -11,6 +11,8 @@ import { combinedStops, dailyBonus, DEFAULT_OPS, type DriverDay, type OpsSetting
 
 export type ReportType = "inspections" | "driver-stats" | "maintenance" | "vans";
 
+export type RowKind = "data" | "subtotal" | "total";
+
 export interface ReportData {
   type: ReportType;
   title: string;
@@ -18,6 +20,9 @@ export interface ReportData {
   rangeLabel: string;
   columns: string[];
   rows: (string | number)[][];
+  /** Parallel to rows — lets viewers style subtotal/total lines. */
+  rowKinds?: RowKind[];
+  mode?: "summary" | "detail";
 }
 
 export const REPORT_TYPES: { type: ReportType; label: string; dated: boolean }[] = [
@@ -32,7 +37,14 @@ export interface ReportParams {
   to?: string;
   van?: string;
   driver?: string;
+  /** summary = one line per driver/van with totals; detail = every day,
+   *  grouped with subtotals. Defaults to detail. */
+  mode?: "summary" | "detail";
 }
+
+const r1 = (n: number) => Math.round(n * 10) / 10;
+const r2 = (n: number) => Math.round(n * 100) / 100;
+const pct = (num: number, den: number) => (den > 0 ? `${r1((num / den) * 100)}%` : "");
 
 const day = (iso: string) => new Date(iso).toLocaleDateString("en-US");
 const displayRange = (p: ReportParams) =>
@@ -65,35 +77,80 @@ async function inspectionsReport(companyId: string, p: ReportParams): Promise<Re
   const all = await listInspections(companyId);
   const fromT = p.from ? new Date(`${p.from}T00:00:00`).getTime() : -Infinity;
   const toT = p.to ? new Date(`${p.to}T23:59:59`).getTime() : Infinity;
-  const rows = all
-    .filter((i) => {
-      const t = new Date(i.createdAt).getTime();
-      if (t < fromT || t > toT) return false;
-      if (p.van && !i.vanId.toLowerCase().includes(p.van.toLowerCase())) return false;
-      if (p.driver && !(i.driver.name ?? i.driver.raw).toLowerCase().includes(p.driver.toLowerCase()))
-        return false;
-      return true;
-    })
-    .map((i) => {
-      const issues = i.answers.filter((a) => a.value === "issue");
-      return [
-        day(i.createdAt),
-        new Date(i.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
-        i.vanId,
-        i.driver.name ?? i.driver.raw,
-        i.driver.route ?? "",
-        i.tripType === "post" ? "Post-trip" : "Pre-trip",
-        i.status === "failed_inspection" ? "Incomplete" : i.status === "flagged" ? "Issues reported" : "Passed",
-        issues.length,
-        issues.map((a) => a.questionId.replace(/_/g, " ") + (a.note ? ` (${a.note})` : "")).join("; "),
-        i.resolution ? `Yes — ${i.resolution.resolvedBy}, ${day(i.resolution.resolvedAt)}` : issues.length > 0 ? "Open" : "",
-        i.photos.length,
-      ];
-    });
-  return {
-    type: "inspections",
+  const matched = all.filter((i) => {
+    const t = new Date(i.createdAt).getTime();
+    if (t < fromT || t > toT) return false;
+    if (p.van && !i.vanId.toLowerCase().includes(p.van.toLowerCase())) return false;
+    if (p.driver && !(i.driver.name ?? i.driver.raw).toLowerCase().includes(p.driver.toLowerCase()))
+      return false;
+    return true;
+  });
+
+  const base = {
+    type: "inspections" as const,
     title: "Inspections / DVIR history",
     rangeLabel: displayRange(p),
+  };
+
+  if (p.mode === "summary") {
+    // One line per van over the range.
+    const byVan = new Map<string, typeof matched>();
+    for (const i of matched) {
+      const list = byVan.get(i.vanId) ?? [];
+      list.push(i);
+      byVan.set(i.vanId, list);
+    }
+    const vans = [...byVan.keys()].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    const rows: (string | number)[][] = [];
+    const rowKinds: RowKind[] = [];
+    const count = (list: typeof matched) => ({
+      checks: list.length,
+      pre: list.filter((i) => i.tripType === "pre").length,
+      post: list.filter((i) => i.tripType === "post").length,
+      passed: list.filter((i) => i.status === "passed").length,
+      flagged: list.filter((i) => i.status === "flagged").length,
+      incomplete: list.filter((i) => i.status === "failed_inspection").length,
+      open: list.filter((i) => i.status === "flagged" && !i.resolution).length,
+      photos: list.reduce((s, i) => s + i.photos.length, 0),
+    });
+    for (const van of vans) {
+      const c = count(byVan.get(van)!);
+      rows.push([van, c.checks, c.pre, c.post, c.passed, c.flagged, c.incomplete, c.open, c.photos]);
+      rowKinds.push("data");
+    }
+    const t = count(matched);
+    rows.push([
+      `TOTAL — ${vans.length} vans`, t.checks, t.pre, t.post, t.passed, t.flagged, t.incomplete, t.open, t.photos,
+    ]);
+    rowKinds.push("total");
+    return {
+      ...base,
+      mode: "summary",
+      columns: ["Van", "Checks", "Pre-trips", "Post-trips", "Passed", "With issues", "Incomplete", "Open issues", "Photos"],
+      rows,
+      rowKinds,
+    };
+  }
+
+  const rows = matched.map((i) => {
+    const issues = i.answers.filter((a) => a.value === "issue");
+    return [
+      day(i.createdAt),
+      new Date(i.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
+      i.vanId,
+      i.driver.name ?? i.driver.raw,
+      i.driver.route ?? "",
+      i.tripType === "post" ? "Post-trip" : "Pre-trip",
+      i.status === "failed_inspection" ? "Incomplete" : i.status === "flagged" ? "Issues reported" : "Passed",
+      issues.length,
+      issues.map((a) => a.questionId.replace(/_/g, " ") + (a.note ? ` (${a.note})` : "")).join("; "),
+      i.resolution ? `Yes — ${i.resolution.resolvedBy}, ${day(i.resolution.resolvedAt)}` : issues.length > 0 ? "Open" : "",
+      i.photos.length,
+    ];
+  });
+  return {
+    ...base,
+    mode: "detail",
     columns: ["Date", "Time", "Van", "Driver", "Route", "Trip", "Status", "Issues", "Issue detail", "Resolved", "Photos"],
     rows,
   };
@@ -144,7 +201,7 @@ async function driverStatsReport(companyId: string, p: ReportParams): Promise<Re
   if (error && missingCompanyColumn(error.message)) ({ data, error } = await build(false));
   if (error || !data) return empty;
 
-  const rows = (data as StatsRow[])
+  const days = (data as StatsRow[])
     .filter((r) => !p.driver || r.driver.toLowerCase().includes(p.driver.toLowerCase()))
     .map((r) => {
       const d: DriverDay = {
@@ -164,30 +221,96 @@ async function driverStatsReport(companyId: string, p: ReportParams): Promise<Re
         onRoadHours: Number(r.on_road_hours) || 0,
         onDutyHours: Number(r.on_duty_hours) || 0,
       };
-      const stops = combinedStops(d);
-      const pct = d.vscanPkgs > 0 ? Math.round((d.actDelPkgs / d.vscanPkgs) * 1000) / 10 : 0;
-      const sph = d.onRoadHours > 0 ? Math.round((stops / d.onRoadHours) * 10) / 10 : 0;
-      return [
-        day(`${d.date}T12:00:00`),
-        d.driver,
-        d.vehicle ?? "",
-        d.route ?? "",
-        d.vscanPkgs,
-        d.actDelPkgs,
-        `${pct}%`,
-        stops,
-        sph,
-        d.miles,
-        d.onRoadHours,
-        d.onDutyHours,
-        Math.round(dailyBonus(d, ops) * 100) / 100,
-      ];
+      return { d, stops: combinedStops(d), bonus: dailyBonus(d, ops) };
     });
+
+  // Group by driver — every driver gets its own totals, always.
+  const byDriver = new Map<string, typeof days>();
+  for (const e of days) {
+    const list = byDriver.get(e.d.driver) ?? [];
+    list.push(e);
+    byDriver.set(e.d.driver, list);
+  }
+  const drivers = [...byDriver.keys()].sort();
+
+  const sum = (list: typeof days) => ({
+    days: list.length,
+    dispatched: list.reduce((s, e) => s + e.d.vscanPkgs, 0),
+    delivered: list.reduce((s, e) => s + e.d.actDelPkgs, 0),
+    stops: list.reduce((s, e) => s + e.stops, 0),
+    miles: r1(list.reduce((s, e) => s + e.d.miles, 0)),
+    road: r2(list.reduce((s, e) => s + e.d.onRoadHours, 0)),
+    duty: r2(list.reduce((s, e) => s + e.d.onDutyHours, 0)),
+    bonus: r2(list.reduce((s, e) => s + e.bonus, 0)),
+  });
+  const all = sum(days);
+
+  if (p.mode === "summary") {
+    // One line per driver over the whole range.
+    const rows: (string | number)[][] = [];
+    const rowKinds: RowKind[] = [];
+    for (const driver of drivers) {
+      const t = sum(byDriver.get(driver)!);
+      rows.push([
+        driver, t.days, t.dispatched, t.delivered, pct(t.delivered, t.dispatched),
+        t.stops, t.road > 0 ? r1(t.stops / t.road) : "", t.miles, t.road, t.duty, t.bonus,
+      ]);
+      rowKinds.push("data");
+    }
+    rows.push([
+      `TOTAL — ${drivers.length} drivers`, all.days, all.dispatched, all.delivered,
+      pct(all.delivered, all.dispatched), all.stops,
+      all.road > 0 ? r1(all.stops / all.road) : "", all.miles, all.road, all.duty, all.bonus,
+    ]);
+    rowKinds.push("total");
+    return {
+      ...empty,
+      mode: "summary",
+      columns: ["Driver", "Days", "Dispatched", "Delivered", "Delivery %", "Stops", "Stops/Hr", "Miles", "On-Road Hrs", "On-Duty Hrs", "Bonus $"],
+      rows,
+      rowKinds,
+    };
+  }
+
+  // Detail: chronological per driver, with a subtotal line after each driver.
+  const rows: (string | number)[][] = [];
+  const rowKinds: RowKind[] = [];
+  for (const driver of drivers) {
+    const list = byDriver.get(driver)!;
+    for (const e of list) {
+      rows.push([
+        day(`${e.d.date}T12:00:00`), driver, e.d.vehicle ?? "", e.d.route ?? "",
+        e.d.vscanPkgs, e.d.actDelPkgs, pct(e.d.actDelPkgs, e.d.vscanPkgs), e.stops,
+        e.d.onRoadHours > 0 ? r1(e.stops / e.d.onRoadHours) : "", e.d.miles,
+        e.d.onRoadHours, e.d.onDutyHours, r2(e.bonus),
+      ]);
+      rowKinds.push("data");
+    }
+    if (list.length > 0 && drivers.length > 1) {
+      const t = sum(list);
+      rows.push([
+        `${driver} — TOTAL (${t.days} day${t.days === 1 ? "" : "s"})`, "", "", "",
+        t.dispatched, t.delivered, pct(t.delivered, t.dispatched), t.stops,
+        t.road > 0 ? r1(t.stops / t.road) : "", t.miles, t.road, t.duty, t.bonus,
+      ]);
+      rowKinds.push("subtotal");
+    }
+  }
+  if (days.length > 0) {
+    rows.push([
+      `TOTAL — ALL DRIVERS (${all.days} driver-days)`, "", "", "",
+      all.dispatched, all.delivered, pct(all.delivered, all.dispatched), all.stops,
+      all.road > 0 ? r1(all.stops / all.road) : "", all.miles, all.road, all.duty, all.bonus,
+    ]);
+    rowKinds.push("total");
+  }
 
   return {
     ...empty,
+    mode: "detail",
     columns: ["Date", "Driver", "Vehicle", "Route", "Dispatched", "Delivered", "Delivery %", "Stops", "Stops/Hr", "Miles", "On-Road Hrs", "On-Duty Hrs", "Bonus $"],
     rows,
+    rowKinds,
   };
 }
 
@@ -227,21 +350,78 @@ async function maintenanceReport(companyId: string, p: ReportParams): Promise<Re
   if (error && missingCompanyColumn(error.message)) ({ data, error } = await build(false));
   if (error || !data) return empty;
 
-  const rows = (data as MaintRow[]).map((r) => [
-    day(`${r.date}T12:00:00`),
-    r.van_id,
-    r.category,
-    r.description,
-    r.mileage ?? "",
-    Math.round((Number(r.cost) || 0) * 100) / 100,
-    r.receipt_url ? "Yes" : "",
-    r.created_by ?? "",
-  ]);
+  const entries = data as MaintRow[];
+  const byVan = new Map<string, MaintRow[]>();
+  for (const r of entries) {
+    const list = byVan.get(r.van_id) ?? [];
+    list.push(r);
+    byVan.set(r.van_id, list);
+  }
+  const vans = [...byVan.keys()].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  const cost = (r: MaintRow) => Number(r.cost) || 0;
+  const grand = r2(entries.reduce((s, r) => s + cost(r), 0));
+
+  if (p.mode === "summary") {
+    // One line per van over the range.
+    const rows: (string | number)[][] = [];
+    const rowKinds: RowKind[] = [];
+    for (const van of vans) {
+      const list = byVan.get(van)!;
+      const cats = new Map<string, number>();
+      list.forEach((r) => cats.set(r.category, (cats.get(r.category) ?? 0) + 1));
+      const topCat = [...cats.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "";
+      rows.push([
+        van,
+        list.length,
+        r2(list.reduce((s, r) => s + cost(r), 0)),
+        day(`${list[0].date}T12:00:00`),
+        day(`${list[list.length - 1].date}T12:00:00`),
+        topCat,
+      ]);
+      rowKinds.push("data");
+    }
+    rows.push([`TOTAL — ${vans.length} vans`, entries.length, grand, "", "", ""]);
+    rowKinds.push("total");
+    return {
+      ...empty,
+      mode: "summary",
+      columns: ["Van", "Entries", "Total $", "First entry", "Last entry", "Top category"],
+      rows,
+      rowKinds,
+    };
+  }
+
+  // Detail: grouped by van with a subtotal per van.
+  const rows: (string | number)[][] = [];
+  const rowKinds: RowKind[] = [];
+  for (const van of vans) {
+    const list = byVan.get(van)!;
+    for (const r of list) {
+      rows.push([
+        day(`${r.date}T12:00:00`), van, r.category, r.description,
+        r.mileage ?? "", r2(cost(r)), r.receipt_url ? "Yes" : "", r.created_by ?? "",
+      ]);
+      rowKinds.push("data");
+    }
+    if (vans.length > 1) {
+      rows.push([
+        `${van} — TOTAL (${list.length} entr${list.length === 1 ? "y" : "ies"})`,
+        "", "", "", "", r2(list.reduce((s, r) => s + cost(r), 0)), "", "",
+      ]);
+      rowKinds.push("subtotal");
+    }
+  }
+  if (entries.length > 0) {
+    rows.push([`TOTAL — ALL VANS (${entries.length} entries)`, "", "", "", "", grand, "", ""]);
+    rowKinds.push("total");
+  }
 
   return {
     ...empty,
+    mode: "detail",
     columns: ["Date", "Van", "Category", "Work performed", "Mileage", "Cost $", "Receipt", "Logged by"],
     rows,
+    rowKinds,
   };
 }
 
