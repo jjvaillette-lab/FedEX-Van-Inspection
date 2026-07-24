@@ -19,7 +19,7 @@ const MAX_DIM = 1100;
 const JPEG_QUALITY = 0.72;
 
 /** Downscale a captured file to keep uploads small (native-camera fallback path). */
-function downscale(file: File): Promise<string> {
+export function downscale(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onerror = () => reject(new Error("read failed"));

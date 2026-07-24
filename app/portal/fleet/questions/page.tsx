@@ -208,6 +208,25 @@ export default function ChecklistEditor() {
             </span>
           </span>
         </label>
+        <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-slate-200 bg-white p-4">
+          <input
+            type="checkbox"
+            checked={!!settings.requireIssuePhotos}
+            onChange={(e) => {
+              setSettings((s) => ({ ...s, requireIssuePhotos: e.target.checked }));
+              setDirty(true);
+            }}
+            className="mt-0.5 h-4 w-4"
+            style={{ accentColor: brand }}
+          />
+          <span>
+            <span className="block text-sm font-semibold text-slate-800">Require issue photos</span>
+            <span className="block text-xs text-slate-500">
+              Drivers can always add a photo to a reported issue. Turn this on to make a photo
+              <strong> mandatory</strong> for every item marked as an issue.
+            </span>
+          </span>
+        </label>
         <div className="flex items-start gap-3 rounded-lg border border-slate-200 bg-white p-4 sm:col-span-2">
           <input
             type="time"

@@ -54,8 +54,8 @@ export default function AddDvirDevice() {
 
   const steps = [
     { t: "Open the link on the driver's phone", d: "Scan the QR code with the phone's camera, or text/email the activation link and tap it." },
-    { t: "Add it to the home screen", d: "In the browser: Share → \"Add to Home Screen.\" It installs as the Van Check app — no app store needed." },
-    { t: "Open the Van Check icon", d: "If it asks for the activation code on first launch, enter it once. The device stays activated for a year." },
+    { t: "Add it to the home screen", d: "In the browser: Share → \"Add to Home Screen.\" It installs as the DVIR app — no app store needed." },
+    { t: "Open the DVIR icon", d: "If it asks for the activation code on first launch, enter it once. The device stays activated for a year." },
     { t: "Run the first check", d: "The phone will ask to allow the camera the first time — tap Allow. After that it's scan, checklist, photos, sign, done." },
   ];
 

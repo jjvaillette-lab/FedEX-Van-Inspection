@@ -3,12 +3,12 @@ import type { Metadata } from "next";
 // The driver surface installs as its own app: "Add to Home Screen" uses this
 // manifest, so the icon opens the driver hub (/driver) — never the website.
 export const metadata: Metadata = {
-  title: "Van Check — Driver",
+  title: "DVIR — Driver",
   manifest: "/driver-manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Van Check",
+    title: "DVIR",
   },
 };
 

@@ -54,6 +54,8 @@ export interface InspectionSettings {
    * defaults to 23:59.
    */
   postCutoff: string;
+  /** When on, every reported issue must include a photo (off by default). */
+  requireIssuePhotos: boolean;
 }
 
 export interface Driver {
@@ -84,7 +86,9 @@ export type PhotoSlot =
   | "optional_3"
   | "optional_4"
   /** Driver's electronic signature on the DVIR (PNG from the signature pad). */
-  | "signature";
+  | "signature"
+  /** Close-up of a reported issue, one per flagged question. */
+  | `issue_${string}`;
 
 export interface InspectionPhoto {
   slot: PhotoSlot;

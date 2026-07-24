@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import BarcodeScanner from "@/app/components/BarcodeScanner";
-import PhotoCapture from "@/app/components/PhotoCapture";
+import PhotoCapture, { downscale } from "@/app/components/PhotoCapture";
 import MultiPhotoCapture from "@/app/components/MultiPhotoCapture";
 import SignaturePad from "@/app/components/SignaturePad";
 import { useAuth } from "@/app/components/portal/AuthProvider";
@@ -67,9 +67,12 @@ export default function InspectionPage() {
 
   const [questions, setQuestions] = useState<QuestionDef[]>([]);
   const [interiorOn, setInteriorOn] = useState(false);
+  const [requireIssuePhotos, setRequireIssuePhotos] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const [answers, setAnswers] = useState<Record<string, { value: string; note?: string }>>({});
+  /** Close-up photo per flagged question (questionId → data URL). */
+  const [issuePhotos, setIssuePhotos] = useState<Record<string, string>>({});
   const [photos, setPhotos] = useState<Partial<Record<PhotoSlot, string>>>({});
   const [photoDescriptions, setPhotoDescriptions] = useState<Partial<Record<PhotoSlot, string>>>({});
   const [optionalIndex, setOptionalIndex] = useState(0);
@@ -98,6 +101,7 @@ export default function InspectionPage() {
     // A trip truly starts here — reset the form once, so answers and photos
     // survive every later step change all the way to submit.
     setAnswers({});
+    setIssuePhotos({});
     setPhotos({});
     setPhotoDescriptions({});
     setOptionalIndex(0);
@@ -106,6 +110,7 @@ export default function InspectionPage() {
       const res = await fetch(`/api/questions?trip=${trip}`);
       const data = await res.json();
       setQuestions(data.questions ?? []);
+      setRequireIssuePhotos(!!data.settings?.requireIssuePhotos);
       setInteriorOn(trip === "post" && !!data.settings?.interiorPhotos);
       setStep("questions");
     } catch {
@@ -163,6 +168,10 @@ export default function InspectionPage() {
     () => questions.filter((q) => answers[q.id]?.value === "issue"),
     [questions, answers]
   );
+  /** When the owner requires them, every flagged item needs its photo. */
+  const missingIssuePhotos = requireIssuePhotos
+    ? flagged.filter((q) => !issuePhotos[q.id]).length
+    : 0;
 
   const setAnswer = (id: string, value: string) =>
     setAnswers((prev) => ({ ...prev, [id]: { ...prev[id], value } }));
@@ -200,6 +209,16 @@ export default function InspectionPage() {
         url: photos[slot]!,
         description: photoDescriptions[slot]?.trim() || undefined,
       }));
+    // Close-ups of reported issues (optional unless the owner requires them).
+    for (const q of questions) {
+      if (answers[q.id]?.value === "issue" && issuePhotos[q.id]) {
+        photoList.push({
+          slot: `issue_${q.id}`,
+          url: issuePhotos[q.id],
+          description: `Issue — ${q.label}`,
+        });
+      }
+    }
     // The driver's electronic signature rides with the report.
     if (signature && !opts.failed) {
       photoList.push({ slot: "signature", url: signature, description: undefined });
@@ -454,12 +473,28 @@ export default function InspectionPage() {
                           </button>
                         </div>
                         {a?.value === "issue" && (
-                          <input
-                            value={a.note ?? ""}
-                            onChange={(e) => setNote(q.id, e.target.value)}
-                            placeholder="Describe the issue (optional)"
-                            className="mt-2 w-full rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm outline-none"
-                          />
+                          <>
+                            <input
+                              value={a.note ?? ""}
+                              onChange={(e) => setNote(q.id, e.target.value)}
+                              placeholder="Describe the issue (optional)"
+                              className="mt-2 w-full rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm outline-none"
+                            />
+                            <IssuePhotoButton
+                              photo={issuePhotos[q.id]}
+                              required={requireIssuePhotos}
+                              onCapture={(dataUrl) =>
+                                setIssuePhotos((prev) => ({ ...prev, [q.id]: dataUrl }))
+                              }
+                              onRemove={() =>
+                                setIssuePhotos((prev) => {
+                                  const next = { ...prev };
+                                  delete next[q.id];
+                                  return next;
+                                })
+                              }
+                            />
+                          </>
                         )}
                       </>
                     )}
@@ -506,13 +541,15 @@ export default function InspectionPage() {
             </div>
 
             <button
-              disabled={!allAnswered}
+              disabled={!allAnswered || missingIssuePhotos > 0}
               onClick={() => setStep("photos")}
               className="mt-6 w-full rounded-xl bg-sky-600 py-4 text-lg font-semibold text-white disabled:opacity-40"
             >
-              {allAnswered
-                ? "Continue to Photos"
-                : `Answer all ${requiredQuestions.length} items`}
+              {!allAnswered
+                ? `Answer all ${requiredQuestions.length} items`
+                : missingIssuePhotos > 0
+                  ? `Add a photo for ${missingIssuePhotos} issue${missingIssuePhotos === 1 ? "" : "s"}`
+                  : "Continue to Photos"}
             </button>
           </div>
         )}
@@ -710,5 +747,84 @@ export default function InspectionPage() {
         )}
       </div>
     </main>
+  );
+}
+
+/**
+ * Inline camera button for a flagged question: snap (or pick) a close-up of
+ * the issue. Uses the native camera and downsizes before storing.
+ */
+function IssuePhotoButton({
+  photo,
+  required,
+  onCapture,
+  onRemove,
+}: {
+  photo?: string;
+  required: boolean;
+  onCapture: (dataUrl: string) => void;
+  onRemove: () => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+
+  const onFile = async (file?: File) => {
+    if (!file) return;
+    setBusy(true);
+    try {
+      onCapture(await downscale(file));
+    } catch {
+      /* unreadable file — leave state unchanged */
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="mt-2">
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={(e) => {
+          void onFile(e.target.files?.[0] ?? undefined);
+          e.target.value = "";
+        }}
+      />
+      {photo ? (
+        <div className="flex items-center gap-2.5">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={photo} alt="Issue photo" className="h-14 w-14 rounded-lg border border-red-200 object-cover" />
+          <span className="flex-1 text-xs font-medium text-slate-600">Photo attached ✓</span>
+          <button
+            onClick={() => inputRef.current?.click()}
+            className="rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-semibold text-slate-600"
+          >
+            Retake
+          </button>
+          <button
+            onClick={onRemove}
+            className="rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-semibold text-slate-400"
+          >
+            Remove
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={() => inputRef.current?.click()}
+          disabled={busy}
+          className={`inline-flex w-full items-center justify-center gap-2 rounded-lg border py-2.5 text-sm font-semibold disabled:opacity-40 ${
+            required
+              ? "border-red-300 bg-white text-red-700"
+              : "border-slate-300 bg-white text-slate-600"
+          }`}
+        >
+          <IconCamera size={16} />
+          {busy ? "Saving…" : required ? "Take photo of the issue (required)" : "Add photo of the issue (optional)"}
+        </button>
+      )}
+    </div>
   );
 }

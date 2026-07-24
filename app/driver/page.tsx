@@ -126,7 +126,7 @@ export default function DriverHub() {
             style={{ background: tenant.themeColor }}
           >
             <IconClipboard size={40} />
-            <span className="mt-3 text-xl font-bold">Start Van Check</span>
+            <span className="mt-3 text-xl font-bold">Start DVIR</span>
             <span className="mt-1 text-sm opacity-80">
               Scan your badge, scan the van, complete the checklist and photos.
             </span>
@@ -149,7 +149,7 @@ export default function DriverHub() {
 
           <p className="mt-6 text-center text-xs text-slate-400">
             Tip: tap Share → &quot;Add to Home Screen&quot; to install this as the{" "}
-            <strong>Van Check</strong> app. If it asks for the activation code the first time it
+            <strong>DVIR</strong> app. If it asks for the activation code the first time it
             opens, enter it once and you&apos;re set.
           </p>
         </>

@@ -74,7 +74,7 @@ function DriverDevicesSection({ brand }: { brand: string }) {
       <p className="mt-1 text-sm text-slate-500">
         Set up each driver phone once: open this link on the device (or scan the QR code with its
         camera), tap Share → &quot;Add to Home Screen&quot;, then open the new{" "}
-        <strong>Van Check</strong> icon — if it asks for the activation code on first launch, enter
+        <strong>DVIR</strong> icon — if it asks for the activation code on first launch, enter
         it once. Driver devices can only run inspections — they can never reach this portal.
       </p>
 

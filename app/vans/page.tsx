@@ -39,7 +39,7 @@ export default function VansPage() {
         <img src="${qr.dataUrl}" alt="${qr.id}"/>
         <h1>${qr.id}</h1>
         <p>${qr.label || ""}</p>
-        <p class="note">Parali Van Check — mount inside the driver door</p>
+        <p class="note">DVIR — mount inside the driver door</p>
         <script>window.onload=function(){window.print();}</script>
       </body></html>`);
     w.document.close();

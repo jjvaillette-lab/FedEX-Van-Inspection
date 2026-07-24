@@ -18,7 +18,7 @@ export default function FleetInspectionModule() {
   const actions = [
     {
       title: "Add DVIR to Device",
-      desc: "Set up a driver phone: QR code, install steps, and the Van Check home-screen app.",
+      desc: "Set up a driver phone: QR code, install steps, and the DVIR home-screen app.",
       href: "/portal/fleet/device",
       icon: IconPhone,
       show: isOwner || hasPermission("inspection.edit_questions"),

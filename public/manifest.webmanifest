@@ -1,6 +1,6 @@
 {
-  "name": "Parali Van Check",
-  "short_name": "Van Check",
+  "name": "Last Mile Assist",
+  "short_name": "LMA",
   "description": "DOT pre-trip van safety inspection",
   "start_url": "/",
   "display": "standalone",

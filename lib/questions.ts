@@ -61,7 +61,12 @@ export const INTERIOR_STEPS: PhotoStep[] = [
 
 export const OPTIONAL_SLOTS: PhotoSlot[] = ["optional_1", "optional_2", "optional_3", "optional_4"];
 
-export const DEFAULT_SETTINGS = { dotMode: true, interiorPhotos: false, postCutoff: "23:59" };
+export const DEFAULT_SETTINGS = {
+  dotMode: true,
+  interiorPhotos: false,
+  postCutoff: "23:59",
+  requireIssuePhotos: false,
+};
 
 /**
  * FMCSA-mandated driver inspection items (49 CFR 396.11): service brakes,

@@ -1,6 +1,6 @@
 {
-  "name": "Van Check",
-  "short_name": "Van Check",
+  "name": "DVIR",
+  "short_name": "DVIR",
   "description": "Pre & post-trip van inspections",
   "start_url": "/driver",
   "scope": "/",
