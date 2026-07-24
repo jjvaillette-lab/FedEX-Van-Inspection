@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/app/components/portal/AuthProvider";
 import BrandLogo from "@/app/components/portal/BrandLogo";
-import { MODULE_ICONS, IconGrid, IconSettings, IconShield, IconLogout, IconMoon, IconSun } from "@/app/components/icons";
+import { MODULE_ICONS, IconColumns, IconGrid, IconSettings, IconShield, IconLogout, IconMoon, IconSun } from "@/app/components/icons";
 import { MODULES, SECTIONS } from "@/lib/tenant";
 
 const THEME_KEY = "lma.theme";
@@ -134,6 +134,21 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
               );
               });
             })()}
+
+            {(user.role === "owner" || user.admin || hasPermission("reports.view")) && (
+              <div className="mt-5">
+                <p className="px-3 pb-1 text-[10.5px] font-semibold uppercase tracking-[0.08em] text-slate-400">
+                  Reporting
+                </p>
+                <Link
+                  href="/portal/reports"
+                  className={navItem(pathname.startsWith("/portal/reports"))}
+                  style={navStyle(pathname.startsWith("/portal/reports"))}
+                >
+                  <IconColumns size={17} /> Reports
+                </Link>
+              </div>
+            )}
           </nav>
 
           <div className="border-t border-slate-100 p-3">

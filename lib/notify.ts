@@ -39,7 +39,12 @@ export async function saveAlertSettings(companyId: string, settings: AlertSettin
   await saveSetting(companyId, "alerts", settings);
 }
 
-export async function sendEmail(to: string[], subject: string, text: string): Promise<void> {
+export async function sendEmail(
+  to: string[],
+  subject: string,
+  text: string,
+  attachments?: { filename: string; content: string }[] // content = base64
+): Promise<void> {
   if (!emailConfigured() || to.length === 0) return;
   await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -52,6 +57,7 @@ export async function sendEmail(to: string[], subject: string, text: string): Pr
       to,
       subject,
       text,
+      ...(attachments && attachments.length > 0 ? { attachments } : {}),
     }),
   }).catch(() => {});
 }

@@ -213,13 +213,16 @@ export default function Landing() {
 
           <div className="mt-10 grid gap-8 text-center sm:grid-cols-3">
             {[
-              { n: "10–15 hrs", l: "of weekly admin time recovered" },
-              { n: "1 login", l: "instead of a stack of tools and binders" },
-              { n: "0 paper forms", l: "riding around in your vans" },
-            ].map((s) => (
-              <div key={s.l}>
-                <div className="text-4xl font-extrabold" style={{ color: PLATFORM.amber }}>{s.n}</div>
-                <div className="mt-1 text-sm text-slate-600">{s.l}</div>
+              "Clients report saving 30–40 hours of admin time — every week",
+              "1 portal to run your entire enterprise",
+              "All documents captured & stored in the cloud",
+            ].map((line) => (
+              <div
+                key={line}
+                className="text-2xl font-extrabold leading-snug md:text-[1.7rem]"
+                style={{ color: PLATFORM.amber }}
+              >
+                {line}
               </div>
             ))}
           </div>

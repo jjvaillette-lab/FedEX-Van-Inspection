@@ -5,7 +5,70 @@ import { getSupabase } from "@/lib/supabase";
 import { loadAlertSettings, sendEmail } from "@/lib/notify";
 import { listInspections } from "@/lib/storage";
 import { listActiveCompanyIds, loadSetting, missingCompanyColumn } from "@/lib/company";
+import { buildReport, reportToCsv, type ReportType } from "@/lib/reports";
 import { combinedStops, dailyBonus, DEFAULT_OPS, type OpsSettings } from "@/lib/opstats";
+
+interface ReportSchedule {
+  id: string;
+  type: ReportType;
+  cadence: "daily" | "weekly" | "monthly";
+  recipients: string[];
+}
+
+/** Send this company's scheduled report emails that are due today. */
+async function sendScheduledReports(companyId: string): Promise<number> {
+  const { value } = await loadSetting<ReportSchedule[]>(companyId, "report_schedules");
+  const schedules = value ?? [];
+  if (schedules.length === 0) return 0;
+
+  const now = new Date();
+  const iso = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+
+  let sent = 0;
+  for (const s of schedules) {
+    const due =
+      s.cadence === "daily" ||
+      (s.cadence === "weekly" && now.getDay() === 1) || // Mondays
+      (s.cadence === "monthly" && now.getDate() === 1); // 1st of the month
+    if (!due || s.recipients.length === 0) continue;
+
+    let from = iso(yesterday);
+    let to = iso(yesterday);
+    if (s.cadence === "weekly") {
+      const start = new Date(yesterday);
+      start.setDate(yesterday.getDate() - 6);
+      from = iso(start);
+    } else if (s.cadence === "monthly") {
+      const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const end = new Date(now.getFullYear(), now.getMonth(), 0);
+      from = iso(start);
+      to = iso(end);
+    }
+
+    try {
+      const report = await buildReport(companyId, s.type, { from, to });
+      const csv = reportToCsv(report);
+      await sendEmail(
+        s.recipients,
+        `${report.title} — ${report.rangeLabel}`,
+        `Your scheduled ${s.cadence} report is attached: ${report.title} (${report.rangeLabel}), ${report.rows.length} rows.\n\nManage schedules: https://www.lastmileassist.com/portal/reports`,
+        [
+          {
+            filename: `${s.type}-${iso(now)}.csv`,
+            content: Buffer.from(csv, "utf8").toString("base64"),
+          },
+        ]
+      );
+      sent++;
+    } catch {
+      /* one bad schedule never blocks the rest */
+    }
+  }
+  return sent;
+}
 
 export const runtime = "nodejs";
 
@@ -124,7 +187,9 @@ export async function GET(request: Request) {
   const companies = await listActiveCompanyIds();
   const results = [];
   for (const companyId of companies) {
-    results.push(await recapForCompany(companyId, y, yDisplay));
+    const recap = await recapForCompany(companyId, y, yDisplay);
+    const reportsSent = await sendScheduledReports(companyId);
+    results.push({ ...recap, reportsSent });
   }
   const first = results[0];
   return NextResponse.json({

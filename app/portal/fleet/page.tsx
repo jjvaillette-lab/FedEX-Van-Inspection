@@ -15,14 +15,8 @@ export default function FleetInspectionModule() {
   const brand = tenant.themeColor;
   const isOwner = user?.role === "owner";
 
-  const actions = [
-    {
-      title: "Add DVIR to Device",
-      desc: "Set up a driver phone: QR code, install steps, and the DVIR home-screen app.",
-      href: "/portal/fleet/device",
-      icon: IconPhone,
-      show: isOwner || hasPermission("inspection.edit_questions"),
-    },
+  // The daily-use screens, front and center.
+  const primary = [
     {
       title: "Inspection Review",
       desc: "History by date, van, or driver — issues, photo evidence, resolutions, exports.",
@@ -37,9 +31,20 @@ export default function FleetInspectionModule() {
       icon: IconFile,
       show: isOwner || hasPermission("inspection.edit_questions"),
     },
+  ].filter((a) => a.show);
+
+  // One-time / occasional setup, tucked below.
+  const setup = [
+    {
+      title: "Add DVIR to Device",
+      desc: "Set up a driver phone with the DVIR home-screen app.",
+      href: "/portal/fleet/device",
+      icon: IconPhone,
+      show: isOwner || hasPermission("inspection.edit_questions"),
+    },
     {
       title: "Van QR Generator",
-      desc: "Create and print a scannable QR code for each van (one-time setup).",
+      desc: "Print a scannable QR code for each van.",
       href: "/vans",
       icon: IconQr,
       show: isOwner || hasPermission("inspection.edit_questions"),
@@ -58,30 +63,56 @@ export default function FleetInspectionModule() {
         Pre &amp; post-trip safety checks for {tenant.name}.
       </p>
 
-      <div className="mt-7 grid gap-3 sm:grid-cols-2">
-        {actions.map((a) => (
+      <div className="mt-7 grid gap-4 sm:grid-cols-2">
+        {primary.map((a) => (
           <Link
             key={a.href}
             href={a.href}
-            className="rounded-lg border border-slate-200 bg-white p-5 transition-shadow hover:shadow-md"
+            className="rounded-xl border border-slate-200 bg-white p-6 transition-shadow hover:shadow-md"
           >
             <span
-              className="flex h-10 w-10 items-center justify-center rounded-lg"
+              className="flex h-12 w-12 items-center justify-center rounded-xl"
               style={{ background: `${brand}14`, color: brand }}
             >
-              <a.icon size={21} />
+              <a.icon size={26} />
             </span>
-            <h3 className="mt-3 text-[15px] font-semibold text-slate-900">{a.title}</h3>
-            <p className="mt-1 text-[13px] leading-snug text-slate-500">{a.desc}</p>
+            <h3 className="mt-4 text-lg font-bold text-slate-900">{a.title}</h3>
+            <p className="mt-1 text-[13.5px] leading-snug text-slate-500">{a.desc}</p>
             <span
-              className="mt-3 inline-flex items-center gap-0.5 text-[13px] font-semibold"
+              className="mt-4 inline-flex items-center gap-0.5 text-sm font-semibold"
               style={{ color: brand }}
             >
-              Open <IconChevronRight size={14} />
+              Open <IconChevronRight size={15} />
             </span>
           </Link>
         ))}
       </div>
+
+      {setup.length > 0 && (
+        <>
+          <p className="mt-10 mb-2 text-xs font-bold uppercase tracking-wide text-slate-400">
+            One-time setup
+          </p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {setup.map((a) => (
+              <Link
+                key={a.href}
+                href={a.href}
+                className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3 transition-colors hover:bg-slate-50"
+              >
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-slate-100 text-slate-500">
+                  <a.icon size={16} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[13.5px] font-semibold text-slate-700">{a.title}</span>
+                  <span className="block truncate text-[11.5px] text-slate-400">{a.desc}</span>
+                </span>
+                <IconChevronRight size={14} className="shrink-0 text-slate-300" />
+              </Link>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
