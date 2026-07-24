@@ -112,7 +112,10 @@ export async function PATCH(request: Request) {
   if (!supabase) return NextResponse.json({ error: "Database not configured." }, { status: 503 });
   const companyId = await companyFromRequest(request);
   const patch: Record<string, unknown> = {};
-  if (body.status && ["invited", "in_progress", "completed", "archived"].includes(body.status)) {
+  if (
+    body.status &&
+    ["invited", "in_progress", "completed", "hired", "rejected", "archived"].includes(body.status)
+  ) {
     patch.status = body.status;
   }
   if (body.notes !== undefined) patch.notes = body.notes;

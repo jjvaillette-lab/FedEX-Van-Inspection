@@ -68,6 +68,8 @@ const STATUS_META: Record<string, { label: string; cls: string }> = {
   invited: { label: "Invited", cls: "border-sky-200 bg-sky-50 text-sky-700" },
   in_progress: { label: "In progress", cls: "border-amber-200 bg-amber-50 text-amber-800" },
   completed: { label: "Completed", cls: "border-emerald-200 bg-emerald-50 text-emerald-700" },
+  hired: { label: "Hired ✓", cls: "border-emerald-600 bg-emerald-600 text-white" },
+  rejected: { label: "Turned down", cls: "border-rose-200 bg-rose-50 text-rose-700" },
   archived: { label: "Archived", cls: "border-slate-200 bg-slate-50 text-slate-500" },
 };
 
@@ -221,7 +223,7 @@ export default function HiringPage() {
       {/* Pipeline */}
       <div className="mt-9 flex flex-wrap items-center gap-2">
         <h2 className="mr-2 text-sm font-bold uppercase tracking-wide text-slate-500">Candidates</h2>
-        {["all", "invited", "in_progress", "completed", "archived"].map((t) => (
+        {["all", "invited", "in_progress", "completed", "hired", "rejected", "archived"].map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -699,6 +701,24 @@ function CandidateModal({
         </div>
 
         <div className="mt-4 flex flex-wrap gap-2">
+          {(candidate.status === "completed" || candidate.status === "rejected") && (
+            <button
+              onClick={() => patch({ status: "hired" })}
+              disabled={busy}
+              className="rounded-lg bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-40"
+            >
+              Mark hired
+            </button>
+          )}
+          {(candidate.status === "completed" || candidate.status === "hired") && (
+            <button
+              onClick={() => patch({ status: "rejected" })}
+              disabled={busy}
+              className="rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-2 text-xs font-semibold text-rose-600 disabled:opacity-40"
+            >
+              Turn down
+            </button>
+          )}
           <button
             onClick={() => patch({ notes })}
             disabled={busy}

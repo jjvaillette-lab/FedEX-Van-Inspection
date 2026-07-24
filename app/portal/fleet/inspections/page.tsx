@@ -255,7 +255,7 @@ export default function InspectionReviewCenter() {
   const [selVan, setSelVan] = useState<string | null>(null);
   const [selDriver, setSelDriver] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [expanded, setExpanded] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<string[]>([]);
   const [compareIds, setCompareIds] = useState<string[]>([]);
   const [compareOpen, setCompareOpen] = useState(false);
   const [resolveTarget, setResolveTarget] = useState<Inspection | null>(null);
@@ -392,9 +392,12 @@ export default function InspectionReviewCenter() {
     { key: "drivers", label: "Drivers", value: stats.drivers, tone: "text-slate-900" },
   ];
 
+  const toggleExpanded = (id: string) =>
+    setExpanded((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+
   const renderRow = (i: Inspection, idx: number) => {
     const meta = statusMeta(i);
-    const open = expanded === i.id;
+    const open = expanded.includes(i.id);
     const dk = dateKey(i.createdAt);
     const dayEntry = dayMap.get(`${i.vanId}|${dk}`);
     const ps = postState(i);
@@ -411,7 +414,7 @@ export default function InspectionReviewCenter() {
             style={{ accentColor: brand }}
           />
           <button
-            onClick={() => setExpanded(open ? null : i.id)}
+            onClick={() => toggleExpanded(i.id)}
             className="flex flex-1 flex-wrap items-center gap-x-4 gap-y-1 text-left"
           >
             <span className="w-24 font-semibold text-slate-900">{i.vanId}</span>
@@ -479,6 +482,215 @@ export default function InspectionReviewCenter() {
     );
   };
 
+  /**
+   * A completed pre + post for the same van, day, and cycle display as ONE
+   * combined bar — the full DVIR day. Everything else stays a single row.
+   */
+  const groupUnits = (items: Inspection[]) => {
+    const used = new Set<string>();
+    const units: ({ pair: { pre: Inspection; post: Inspection } } | { single: Inspection })[] = [];
+    for (const i of items) {
+      if (used.has(i.id)) continue;
+      if (i.status !== "failed_inspection") {
+        const partner = items.find(
+          (j) =>
+            !used.has(j.id) &&
+            j.id !== i.id &&
+            j.vanId === i.vanId &&
+            dateKey(j.createdAt) === dateKey(i.createdAt) &&
+            j.cycle === i.cycle &&
+            j.tripType !== i.tripType &&
+            j.status !== "failed_inspection"
+        );
+        if (partner) {
+          used.add(i.id);
+          used.add(partner.id);
+          const pre = i.tripType === "pre" ? i : partner;
+          const post = i.tripType === "post" ? i : partner;
+          units.push({ pair: { pre, post } });
+          continue;
+        }
+      }
+      used.add(i.id);
+      units.push({ single: i });
+    }
+    return units;
+  };
+
+  /** Large side-by-side photo reel: PRE left, POST right, matched by angle. */
+  const openPhotoCompare = (pre: Inspection, post: Inspection) => {
+    const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const LABELS: Record<string, string> = {
+      driver_side: "Driver Side",
+      back: "Back",
+      passenger_side: "Passenger Side",
+      front: "Front",
+      interior_cabin: "Interior Cabin",
+      interior_cargo: "Interior Cargo Area",
+      fuel_gauge: "Fuel Gauge",
+      optional_1: "Additional Photo 1",
+      optional_2: "Additional Photo 2",
+      optional_3: "Additional Photo 3",
+      optional_4: "Additional Photo 4",
+    };
+    const ORDER = Object.keys(LABELS);
+    const photoMap = (i: Inspection) => {
+      const m = new Map<string, { url: string; description?: string }>();
+      for (const p of i.photos) {
+        if (p.slot === "signature") continue;
+        m.set(p.slot, { url: p.url, description: p.description });
+      }
+      return m;
+    };
+    const a = photoMap(pre);
+    const b = photoMap(post);
+    const slots = [
+      ...ORDER.filter((s) => a.has(s) || b.has(s)),
+      ...[...new Set([...a.keys(), ...b.keys()])].filter((s) => !ORDER.includes(s)),
+    ];
+    const label = (slot: string) =>
+      LABELS[slot] ??
+      (a.get(slot)?.description || b.get(slot)?.description || slot.replace(/^issue_/, "Issue — ").replace(/_/g, " "));
+
+    const cell = (p?: { url: string }) =>
+      p
+        ? `<a href="${p.url}" target="_blank"><img src="${p.url}" alt="" /></a>`
+        : `<div class="missing">No photo</div>`;
+
+    const sections = slots
+      .map(
+        (slot) => `
+      <section>
+        <h2>${esc(label(slot))}</h2>
+        <div class="row">
+          <div class="col">${cell(a.get(slot))}</div>
+          <div class="col">${cell(b.get(slot))}</div>
+        </div>
+      </section>`
+      )
+      .join("");
+
+    const win = window.open("", "_blank");
+    if (!win) return;
+    win.document.write(`<!doctype html><html><head><title>${esc(pre.vanId)} — Photo compare</title><style>
+      *{box-sizing:border-box} body{margin:0;background:#0b1220;color:#e2e8f0;font-family:-apple-system,Segoe UI,Roboto,sans-serif}
+      header{position:sticky;top:0;z-index:5;background:#0b1220;border-bottom:1px solid #1e293b;padding:14px 20px}
+      h1{margin:0;font-size:17px} .sub{color:#64748b;font-size:12px;margin-top:2px}
+      .heads{position:sticky;top:64px;z-index:5;display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:10px 20px;background:#0b1220}
+      .heads div{text-align:center;font-weight:800;font-size:14px;letter-spacing:.06em;padding:8px;border-radius:8px}
+      .pre-h{background:#0c4a6e;color:#e0f2fe} .post-h{background:#312e81;color:#e0e7ff}
+      section{padding:6px 20px 22px} h2{font-size:13px;color:#94a3b8;text-transform:uppercase;letter-spacing:.08em;margin:14px 0 8px}
+      .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+      .col img{width:100%;border-radius:12px;display:block;border:1px solid #1e293b}
+      .missing{display:flex;align-items:center;justify-content:center;min-height:220px;border:1px dashed #334155;border-radius:12px;color:#475569;font-size:13px}
+    </style></head><body>
+      <header>
+        <h1>${esc(pre.vanId)} — ${esc(dateKey(pre.createdAt))} · Pre vs Post</h1>
+        <p class="sub">Photos matched by angle. Tap any photo to open it full size. ${esc(pre.driver.name ?? pre.driver.raw)}</p>
+      </header>
+      <div class="heads">
+        <div class="pre-h">PRE-TRIP · ${esc(timeOf(pre.createdAt))}</div>
+        <div class="post-h">POST-TRIP · ${esc(timeOf(post.createdAt))}</div>
+      </div>
+      ${sections}
+    </body></html>`);
+    win.document.close();
+  };
+
+  const renderPairRow = (pre: Inspection, post: Inspection, idx: number) => {
+    const bothOpen = expanded.includes(pre.id) && expanded.includes(post.id);
+    const dk = dateKey(pre.createdAt);
+    const anyIssues = pre.hasIssues || post.hasIssues;
+    const resolved = !!(pre.resolution || post.resolution);
+    const photoTotal = pre.photos.length + post.photos.length;
+    const chip = (i: Inspection, cls: string, label: string) => (
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          toggleExpanded(i.id);
+        }}
+        title={`Open the ${label.toLowerCase()} on its own`}
+        className={`rounded px-2 py-1 text-[11px] font-bold uppercase tracking-wide ${cls} ${
+          expanded.includes(i.id) ? "ring-2 ring-offset-1 ring-slate-300" : ""
+        }`}
+      >
+        {label} · {timeOf(i.createdAt)} {i.hasIssues ? "⚠" : "✓"}
+      </button>
+    );
+    return (
+      <div key={pre.id} className={idx > 0 ? "border-t border-slate-100" : ""}>
+        <div
+          onClick={() =>
+            setExpanded((prev) => {
+              const rest = prev.filter((x) => x !== pre.id && x !== post.id);
+              return bothOpen ? rest : [...rest, pre.id, post.id];
+            })
+          }
+          className="flex cursor-pointer flex-wrap items-center gap-x-4 gap-y-1.5 px-4 py-3 hover:bg-slate-50/60"
+        >
+          <span className="w-24 font-semibold text-slate-900">{pre.vanId}</span>
+          <span className="w-36 truncate text-sm text-slate-600">
+            {pre.driver.name ?? pre.driver.raw}
+          </span>
+          <span className="text-sm tabular-nums text-slate-500">{dk}</span>
+          {chip(pre, "bg-sky-50 text-sky-700", "Pre")}
+          {chip(post, "bg-indigo-50 text-indigo-700", "Post")}
+          <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[11px] font-bold uppercase text-emerald-700">
+            Full day
+          </span>
+          <span className="ml-auto" />
+          {photoTotal > 0 && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-semibold text-slate-500">
+              <IconCamera size={13} /> {photoTotal}
+            </span>
+          )}
+          {anyIssues && !resolved && (
+            <span className="rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-800">
+              Issues reported
+            </span>
+          )}
+          {resolved && (
+            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700">
+              <IconCheckCircle size={13} /> Resolved
+            </span>
+          )}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              openPhotoCompare(pre, post);
+            }}
+            className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+          >
+            Compare photos
+          </button>
+        </div>
+
+        {expanded.includes(pre.id) && (
+          <ExpandedDetails
+            inspection={pre}
+            brand={brand}
+            canResolve={hasPermission("inspection.resolve")}
+            onResolve={() => setResolveTarget(pre)}
+            onChanged={reload}
+            userName={user?.name ?? ""}
+            userRole={user?.role ?? "manager"}
+          />
+        )}
+        {expanded.includes(post.id) && (
+          <ExpandedDetails
+            inspection={post}
+            brand={brand}
+            canResolve={hasPermission("inspection.resolve")}
+            onResolve={() => setResolveTarget(post)}
+            onChanged={reload}
+            userName={user?.name ?? ""}
+            userRole={user?.role ?? "manager"}
+          />
+        )}
+      </div>
+    );
+  };
+
   const listBox = (items: Inspection[], empty: string) =>
     items.length === 0 ? (
       <p className="rounded-lg border border-dashed border-slate-300 bg-white px-4 py-8 text-center text-sm text-slate-400">
@@ -486,7 +698,9 @@ export default function InspectionReviewCenter() {
       </p>
     ) : (
       <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-        {items.map((i, idx) => renderRow(i, idx))}
+        {groupUnits(items).map((u, idx) =>
+          "pair" in u ? renderPairRow(u.pair.pre, u.pair.post, idx) : renderRow(u.single, idx)
+        )}
       </div>
     );
 
