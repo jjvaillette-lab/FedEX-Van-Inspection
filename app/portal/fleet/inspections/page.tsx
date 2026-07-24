@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/app/components/portal/AuthProvider";
-import { parseJsonResponse, uploadReceiptFile } from "@/app/components/uploadFile";
+import { parseJsonResponse, uploadReceiptFile, validateReceiptFile } from "@/app/components/uploadFile";
 import { PHOTO_STEPS, INTERIOR_STEPS, DEFAULT_SETTINGS } from "@/lib/questions";
 import {
   IconCalendar,
@@ -1295,6 +1295,12 @@ function ResolveModal({
 
   const onFile = (file?: File) => {
     if (!file) return;
+    const sizeErr = validateReceiptFile(file);
+    if (sizeErr) {
+      setErr(sizeErr);
+      return;
+    }
+    setErr(null);
     setReceipt(file);
     setReceiptName(file.name);
   };
@@ -1362,7 +1368,7 @@ function ResolveModal({
               onClick={() => fileRef.current?.click()}
               className="w-full rounded-lg border border-dashed border-slate-300 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50"
             >
-              {receiptName ? `Receipt attached: ${receiptName}` : "Upload receipt (optional)"}
+              {receiptName ? `Receipt attached: ${receiptName}` : "Upload receipt (optional, up to 10 MB)"}
             </button>
             <p className="mt-1 text-[11px] text-slate-400">
               Saved to this van&apos;s folder for cost tracking.

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/app/components/portal/AuthProvider";
-import { parseJsonResponse, uploadReceiptFile } from "@/app/components/uploadFile";
+import { parseJsonResponse, uploadReceiptFile, validateReceiptFile } from "@/app/components/uploadFile";
 import { IconAlert, IconQr, IconVan, IconWrench } from "@/app/components/icons";
 import type { MaintenanceRecord, VanRecord } from "@/lib/types";
 
@@ -840,6 +840,12 @@ function MaintModal({
 
   const onFile = (file?: File) => {
     if (!file) return;
+    const sizeErr = validateReceiptFile(file);
+    if (sizeErr) {
+      setErr(sizeErr);
+      return;
+    }
+    setErr(null);
     setReceipt(file);
     setReceiptName(file.name);
   };
@@ -967,7 +973,7 @@ function MaintModal({
               onClick={() => fileRef.current?.click()}
               className="mt-3 w-full rounded-lg border border-dashed border-slate-300 py-2 text-xs font-medium text-slate-600 hover:bg-slate-50"
             >
-              {receiptName ? `Receipt attached: ${receiptName}` : "Upload receipt (optional)"}
+              {receiptName ? `Receipt attached: ${receiptName}` : "Upload receipt (optional, up to 10 MB)"}
             </button>
             {err && <p className="mt-2 rounded bg-red-50 px-3 py-2 text-sm text-red-700">{err}</p>}
             <div className="mt-3 grid grid-cols-2 gap-3">

@@ -13,7 +13,15 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as {
     vanId?: string;
     filename?: string;
+    size?: number;
   };
+  const MAX_MB = 10;
+  if (typeof body.size === "number" && body.size > MAX_MB * 1024 * 1024) {
+    return NextResponse.json(
+      { error: `Receipts can be up to ${MAX_MB} MB. Try a smaller scan or a photo of the receipt.` },
+      { status: 413 }
+    );
+  }
   const vanId = body.vanId?.trim() || "general";
   const supabase = getSupabase();
   if (!supabase) return NextResponse.json({ error: "Storage not configured." }, { status: 503 });
