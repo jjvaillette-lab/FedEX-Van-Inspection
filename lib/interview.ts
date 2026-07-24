@@ -14,6 +14,10 @@ import { getSupabase } from "./supabase";
 export interface PositionQuestion {
   id: string;
   text: string;
+  /** Turned off by the owner — kept in the set, never asked. */
+  off?: boolean;
+  /** Owner saw a compliance warning and chose to keep the question. */
+  overridden?: boolean;
 }
 
 export interface TranscriptTurn {
@@ -180,6 +184,7 @@ export async function loadPosition(
   return {
     title: data.title as string,
     companyName,
-    questions: (data.questions ?? []) as PositionQuestion[],
+    // Off questions stay in the set but are never asked.
+    questions: ((data.questions ?? []) as PositionQuestion[]).filter((q) => !q.off),
   };
 }

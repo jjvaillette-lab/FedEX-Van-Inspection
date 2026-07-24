@@ -15,6 +15,10 @@ import { checkInterviewQuestion } from "@/lib/questionCheck";
 interface Question {
   id: string;
   text: string;
+  /** Turned off — kept in the set, never asked. */
+  off?: boolean;
+  /** Owner saw the compliance warning and chose to keep the question. */
+  overridden?: boolean;
 }
 
 interface Position {
@@ -314,8 +318,12 @@ export default function HiringPage() {
                 </span>
               </div>
               <p className="mt-2 text-xs text-slate-500">
-                {p.questions.length} interview question{p.questions.length === 1 ? "" : "s"} ·{" "}
-                {candidates.filter((c) => c.position_id === p.id && c.status !== "archived").length} candidates
+                {p.questions.filter((q) => !q.off).length} interview question
+                {p.questions.filter((q) => !q.off).length === 1 ? "" : "s"}
+                {p.questions.some((q) => q.off)
+                  ? ` (${p.questions.filter((q) => q.off).length} off)`
+                  : ""}{" "}
+                · {candidates.filter((c) => c.position_id === p.id && c.status !== "archived").length} candidates
               </p>
               <div className="mt-3 flex flex-wrap gap-2">
                 <button
@@ -563,9 +571,14 @@ function PositionModal({
   const [pay, setPay] = useState(position?.pay ?? seed?.pay ?? "");
   const [location, setLocation] = useState(position?.location ?? seed?.location ?? "");
   const [description, setDescription] = useState(position?.description ?? seed?.description ?? "");
-  const [questions, setQuestions] = useState<string[]>(
-    position ? position.questions.map((q) => q.text) : (seed?.questions ?? [""])
+  const [questions, setQuestions] = useState<{ text: string; off: boolean; overridden: boolean }[]>(
+    position
+      ? position.questions.map((q) => ({ text: q.text, off: !!q.off, overridden: !!q.overridden }))
+      : (seed?.questions ?? [""]).map((t) => ({ text: t, off: false, overridden: false }))
   );
+  const patchQ = (i: number, patch: Partial<{ text: string; off: boolean; overridden: boolean }>) =>
+    setQuestions((qs) => qs.map((q, j) => (j === i ? { ...q, ...patch } : q)));
+  const activeCount = questions.filter((q) => !q.off && q.text.trim()).length;
   const [active, setActive] = useState(position?.active ?? true);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -575,9 +588,14 @@ function PositionModal({
     setErr(null);
     try {
       const qList = questions
-        .map((t) => t.trim())
-        .filter(Boolean)
-        .map((text, i) => ({ id: `q${i + 1}`, text }));
+        .map((q) => ({ ...q, text: q.text.trim() }))
+        .filter((q) => q.text)
+        .map((q, i) => ({
+          id: `q${i + 1}`,
+          text: q.text,
+          ...(q.off ? { off: true } : {}),
+          ...(q.overridden ? { overridden: true } : {}),
+        }));
       const body = { id: position?.id, title, pay, location, description, questions: qList, active };
       const res = await fetch("/api/hr/positions", {
         method: position ? "PUT" : "POST",
@@ -628,62 +646,93 @@ function PositionModal({
             </label>
             <div className="space-y-2">
               {questions.map((q, i) => {
-                const warning = checkInterviewQuestion(q);
+                const warning = q.off ? null : checkInterviewQuestion(q.text);
+                const showWarning = !!warning && !q.overridden;
                 return (
                   <div key={i}>
                     <div className="flex gap-2">
                       <textarea
-                        value={q}
-                        onChange={(e) => setQuestions(questions.map((x, j) => (j === i ? e.target.value : x)))}
+                        value={q.text}
+                        onChange={(e) => patchQ(i, { text: e.target.value, overridden: false })}
                         rows={2}
-                        className={`${inputCls} flex-1 ${
-                          warning ? (warning.level === "illegal" ? "border-red-400" : "border-amber-400") : ""
+                        disabled={q.off}
+                        className={`${inputCls} flex-1 ${q.off ? "opacity-45" : ""} ${
+                          showWarning ? (warning!.level === "illegal" ? "border-red-400" : "border-amber-400") : ""
                         }`}
                       />
                       <button
-                        onClick={() => setQuestions(questions.filter((_, j) => j !== i))}
-                        className="self-start rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs text-slate-400 hover:text-red-600"
+                        onClick={() => patchQ(i, { off: !q.off })}
+                        title={q.off ? "Turn this question back on" : "Turn off — kept in the list, never asked"}
+                        className={`w-12 self-start rounded-lg border px-2 py-1.5 text-xs font-bold ${
+                          q.off
+                            ? "border-slate-300 bg-slate-100 text-slate-400"
+                            : "border-emerald-300 bg-emerald-50 text-emerald-700"
+                        }`}
                       >
-                        ✕
+                        {q.off ? "Off" : "On"}
                       </button>
                     </div>
-                    {warning && (
+                    {q.off && (
+                      <p className="mt-1 text-[11px] text-slate-400">
+                        Turned off — stays in your list but is never asked.
+                      </p>
+                    )}
+                    {warning && q.overridden && (
+                      <p className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-slate-500">
+                        <span className="font-semibold text-amber-700">⚠ Kept by owner override</span>
+                        — the compliance warning is hidden for this question.
+                        <button
+                          onClick={() => patchQ(i, { overridden: false })}
+                          className="font-semibold underline hover:text-slate-700"
+                        >
+                          Reconsider
+                        </button>
+                      </p>
+                    )}
+                    {showWarning && (
                       <div
                         className={`mt-1.5 rounded-lg border-2 px-3 py-2 text-xs ${
-                          warning.level === "illegal"
+                          warning!.level === "illegal"
                             ? "border-red-300 bg-white"
                             : "border-amber-300 bg-white"
                         }`}
                       >
-                        <p className={`flex items-center gap-1.5 font-bold ${warning.level === "illegal" ? "text-red-700" : "text-amber-700"}`}>
+                        <p className={`flex items-center gap-1.5 font-bold ${warning!.level === "illegal" ? "text-red-700" : "text-amber-700"}`}>
                           <IconAlert size={13} />
-                          {warning.level === "illegal"
+                          {warning!.level === "illegal"
                             ? "Don't ask this — likely illegal in hiring"
                             : "Possibly questionable — safer wording available"}
                         </p>
-                        <p className="mt-1 text-slate-600">{warning.reason}</p>
-                        {warning.suggestion && (
-                          <>
-                            <p className="mt-1.5 text-slate-700">
-                              <span className="font-semibold">Suggested instead:</span> &ldquo;{warning.suggestion}&rdquo;
-                            </p>
-                            <button
-                              onClick={() =>
-                                setQuestions(questions.map((x, j) => (j === i ? warning.suggestion! : x)))
-                              }
-                              className="mt-1.5 rounded-md border border-slate-300 px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
-                            >
-                              Use suggestion
-                            </button>
-                          </>
+                        <p className="mt-1 text-slate-600">{warning!.reason}</p>
+                        {warning!.suggestion && (
+                          <p className="mt-1.5 text-slate-700">
+                            <span className="font-semibold">Suggested instead:</span> &ldquo;{warning!.suggestion}&rdquo;
+                          </p>
                         )}
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {warning!.suggestion && (
+                            <button
+                              onClick={() => patchQ(i, { text: warning!.suggestion!, overridden: false })}
+                              className="rounded-md px-2.5 py-1 text-[11px] font-bold text-white"
+                              style={{ background: brand }}
+                            >
+                              Accept change
+                            </button>
+                          )}
+                          <button
+                            onClick={() => patchQ(i, { overridden: true })}
+                            className="rounded-md border border-slate-300 px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
+                          >
+                            Override &amp; keep question
+                          </button>
+                        </div>
                       </div>
                     )}
                   </div>
                 );
               })}
               <button
-                onClick={() => setQuestions([...questions, ""])}
+                onClick={() => setQuestions([...questions, { text: "", off: false, overridden: false }])}
                 className="text-sm font-semibold"
                 style={{ color: brand }}
               >
@@ -704,11 +753,11 @@ function PositionModal({
             </button>
             <button
               onClick={save}
-              disabled={busy || !title.trim() || questions.every((q) => !q.trim())}
+              disabled={busy || !title.trim() || activeCount === 0}
               className="rounded-lg py-2.5 text-sm font-semibold text-white disabled:opacity-40"
               style={{ background: brand }}
             >
-              {busy ? "Saving…" : "Save position"}
+              {busy ? "Saving…" : activeCount === 0 ? "Turn on at least 1 question" : "Save position"}
             </button>
           </div>
         </div>
@@ -779,7 +828,9 @@ function ComplianceReviewModal({
 }) {
   const results = position.questions.map((q) => ({
     text: q.text,
-    warning: checkInterviewQuestion(q.text),
+    off: !!q.off,
+    overridden: !!q.overridden,
+    warning: q.off ? null : checkInterviewQuestion(q.text),
   }));
   const flagged = results.filter((r) => r.warning);
 
@@ -812,11 +863,17 @@ function ComplianceReviewModal({
               }`}
             >
               <div className="flex items-start gap-2">
-                <span className={r.warning ? (r.warning.level === "illegal" ? "text-red-600" : "text-amber-600") : "text-emerald-600"}>
-                  {r.warning ? "⚠" : "✓"}
+                <span className={r.off ? "text-slate-300" : r.warning ? (r.warning.level === "illegal" ? "text-red-600" : "text-amber-600") : "text-emerald-600"}>
+                  {r.off ? "○" : r.warning ? "⚠" : "✓"}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-slate-700">{r.text}</p>
+                  <p className={r.off ? "text-slate-400 line-through" : "text-slate-700"}>{r.text}</p>
+                  {r.off && <p className="mt-0.5 text-[11px] text-slate-400">Turned off — not asked.</p>}
+                  {r.warning && r.overridden && (
+                    <p className="mt-0.5 text-[11px] font-semibold text-amber-700">
+                      Owner override on file — warning acknowledged and kept.
+                    </p>
+                  )}
                   {r.warning && (
                     <>
                       <p className={`mt-1 text-xs font-bold ${r.warning.level === "illegal" ? "text-red-700" : "text-amber-700"}`}>
