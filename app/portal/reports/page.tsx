@@ -82,7 +82,6 @@ export default function ReportsPage() {
   const canView = user?.role === "owner" || !!user?.admin || hasPermission("reports.view");
 
   const [type, setType] = useState<ReportType>("inspections");
-  const [preset, setPreset] = useState("7d");
   const [from, setFrom] = useState(presetRange("7d").from);
   const [to, setTo] = useState(presetRange("7d").to);
   const [van, setVan] = useState("");
@@ -107,15 +106,6 @@ export default function ReportsPage() {
       })
       .catch(() => {});
   }, []);
-
-  const applyPreset = (p: string) => {
-    setPreset(p);
-    if (p !== "custom") {
-      const r = presetRange(p);
-      setFrom(r.from);
-      setTo(r.to);
-    }
-  };
 
   const query = () => {
     const params = new URLSearchParams({ type });
@@ -300,45 +290,12 @@ export default function ReportsPage() {
         {meta.dated ? (
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs font-bold uppercase tracking-wide text-slate-400">Date range</span>
-            {[
-              { v: "today", l: "Today" },
-              { v: "yesterday", l: "Yesterday" },
-              { v: "7d", l: "Last 7 days" },
-              { v: "30d", l: "Last 30 days" },
-              { v: "month", l: "This month" },
-              { v: "lastmonth", l: "Last month" },
-              { v: "custom", l: "Custom" },
-            ].map((p) => (
-              <button
-                key={p.v}
-                onClick={() => applyPreset(p.v)}
-                className={`rounded-full border px-3 py-1 text-xs font-semibold ${
-                  preset === p.v ? "text-white" : "border-slate-300 text-slate-600 hover:bg-slate-50"
-                }`}
-                style={preset === p.v ? { background: brand, borderColor: brand } : undefined}
-              >
-                {p.l}
-              </button>
-            ))}
-            <input
-              type="date"
-              value={from}
-              onChange={(e) => {
-                setFrom(e.target.value);
-                setPreset("custom");
-              }}
-              className={inputCls}
-            />
+            <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={inputCls} />
             <span className="text-slate-400">→</span>
-            <input
-              type="date"
-              value={to}
-              onChange={(e) => {
-                setTo(e.target.value);
-                setPreset("custom");
-              }}
-              className={inputCls}
-            />
+            <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={inputCls} />
+            <span className="text-xs text-slate-400">
+              Pick one day (same date twice) or any range.
+            </span>
           </div>
         ) : (
           <p className="text-sm text-slate-500">

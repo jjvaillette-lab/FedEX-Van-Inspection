@@ -4,8 +4,11 @@
  * offline are queued in IndexedDB by the page (lib/offline.ts) — this worker
  * only handles GET requests.
  */
-const CACHE = "lma-driver-v1";
+const CACHE = "lma-driver-v2";
 const SHELL = ["/driver", "/inspection"];
+// Dev servers rebuild constantly under stable chunk URLs — caching there
+// serves stale code. Offline support is a production behavior.
+const DEV = self.location.hostname === "localhost" || self.location.hostname === "127.0.0.1";
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
@@ -24,6 +27,7 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
+  if (DEV) return;
   const req = event.request;
   if (req.method !== "GET") return;
   const url = new URL(req.url);
