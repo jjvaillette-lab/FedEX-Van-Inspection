@@ -12,6 +12,7 @@ export type ModuleKey =
   | "fleet-maintenance"
   | "operations-driver-stats"
   | "operations-dispatch"
+  | "hr-hiring"
   | "hr-payroll";
 
 export type Section = "Operations" | "Fleet" | "Human Resources";
@@ -37,6 +38,7 @@ export const PERMISSIONS = {
   "inspection.edit_questions": "Edit the inspection checklist",
   "inspection.export": "Export inspection reports (PDF/CSV)",
   "fleet.van_list": "Manage the van list (details, activate / inactivate)",
+  "hr.hiring": "Hiring — positions, candidates & interviews",
   "fleet.maintenance": "Manage van maintenance & costs",
   "ops.driver_stats": "View & manage driver stats",
   "reports.view": "View the reporting tab",
@@ -86,7 +88,7 @@ export const TAB_PERMISSIONS: Record<Section, { key: PermissionKey; label: strin
     { key: "reports.view", label: "View fleet reporting" },
   ],
   Operations: [{ key: "ops.driver_stats", label: "Driver stats & scorecards" }],
-  "Human Resources": [],
+  "Human Resources": [{ key: "hr.hiring", label: "Hiring — positions, candidates & interviews" }],
 };
 
 /** A manager account as stored/edited by the owner in Settings. */
@@ -121,7 +123,7 @@ export const DEMO_TENANT: Tenant = {
   name: "Stratford Delivery Corp",
   slug: "stratford",
   themeColor: "#0E7C5A", // green — deliberately different from the LMA platform brand
-  enabledModules: ["fleet-inspection", "fleet-van-list", "fleet-maintenance", "operations-driver-stats"],
+  enabledModules: ["fleet-inspection", "fleet-van-list", "fleet-maintenance", "operations-driver-stats", "hr-hiring"],
 };
 
 export const DEMO_USERS: PortalUser[] = [
@@ -196,6 +198,14 @@ export const MODULES: PortalModule[] = [
     name: "Dispatch",
     description: "Routes, assignments, and daily operations.",
     icon: "route",
+  },
+  {
+    key: "hr-hiring",
+    section: "Human Resources",
+    name: "Hiring",
+    description: "Positions, AI-screened interviews, and a scored candidate pipeline.",
+    icon: "users",
+    href: "/portal/hr",
   },
   {
     key: "hr-payroll",

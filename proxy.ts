@@ -26,6 +26,9 @@ function isPublic(pathname: string, method: string): boolean {
     pathname === "/login" ||
     pathname === "/contact" ||
     pathname === "/driver" ||
+    // Candidate interviews: public pages/API gated by unguessable invite tokens.
+    pathname.startsWith("/interview/") ||
+    pathname.startsWith("/api/interview/") ||
     // Offline shell for driver phones — a static file, safe to serve publicly.
     pathname === "/sw.js" ||
     pathname.startsWith("/api/gate") ||
