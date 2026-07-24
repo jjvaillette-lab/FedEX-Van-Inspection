@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/app/components/portal/AuthProvider";
-import { IconPlus, IconUsers } from "@/app/components/icons";
+import { IconAlert, IconPlus, IconUsers } from "@/app/components/icons";
+import { checkInterviewQuestion } from "@/lib/questionCheck";
 
 /**
  * HR › Hiring — positions with AI interview question sets, and the scored
@@ -90,8 +91,10 @@ export default function HiringPage() {
   const [tab, setTab] = useState<string>("all");
   const [editPos, setEditPos] = useState<Position | "new" | "template" | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [detail, setDetail] = useState<Candidate | null>(null);
   const [invite, setInvite] = useState<{ name: string; link: string; smsSent: boolean; emailSent: boolean } | null>(null);
+  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
 
   const reload = () => {
     Promise.all([
@@ -141,19 +144,39 @@ export default function HiringPage() {
             Post positions, invite applicants, and let the AI interviewer screen them 24/7.
           </p>
         </div>
-        <button
-          onClick={() => setAddOpen(true)}
-          disabled={positions.filter((p) => p.active).length === 0}
-          className="rounded-lg px-3.5 py-2 text-sm font-semibold text-white disabled:opacity-40"
-          style={{ background: brand }}
-        >
-          + Add candidate
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setImportOpen(true)}
+            disabled={positions.filter((p) => p.active).length === 0}
+            className="rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+          >
+            Import CSV / Excel
+          </button>
+          <button
+            onClick={() => setAddOpen(true)}
+            disabled={positions.filter((p) => p.active).length === 0}
+            className="rounded-lg px-3.5 py-2 text-sm font-semibold text-white disabled:opacity-40"
+            style={{ background: brand }}
+          >
+            + Add candidate
+          </button>
+        </div>
       </div>
 
       {(!persisted || apiError) && (
         <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
           {apiError ?? "Database not configured."}
+        </p>
+      )}
+      {message && (
+        <p
+          className={`mt-4 rounded-lg border px-4 py-2.5 text-sm ${
+            message.ok
+              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+              : "border-red-200 bg-red-50 text-red-700"
+          }`}
+        >
+          {message.text}
         </p>
       )}
       {persisted && !aiOn && (
@@ -312,6 +335,19 @@ export default function HiringPage() {
           }}
         />
       )}
+      {importOpen && (
+        <ImportCandidatesModal
+          brand={brand}
+          positions={positions.filter((p) => p.active)}
+          existing={candidates}
+          onClose={() => setImportOpen(false)}
+          onDone={(msg) => {
+            setImportOpen(false);
+            setMessage(msg);
+            reload();
+          }}
+        />
+      )}
       {addOpen && (
         <AddCandidateModal
           brand={brand}
@@ -456,22 +492,61 @@ function PositionModal({
               Interview questions (asked in order)
             </label>
             <div className="space-y-2">
-              {questions.map((q, i) => (
-                <div key={i} className="flex gap-2">
-                  <textarea
-                    value={q}
-                    onChange={(e) => setQuestions(questions.map((x, j) => (j === i ? e.target.value : x)))}
-                    rows={2}
-                    className={`${inputCls} flex-1`}
-                  />
-                  <button
-                    onClick={() => setQuestions(questions.filter((_, j) => j !== i))}
-                    className="self-start rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs text-slate-400 hover:text-red-600"
-                  >
-                    ✕
-                  </button>
-                </div>
-              ))}
+              {questions.map((q, i) => {
+                const warning = checkInterviewQuestion(q);
+                return (
+                  <div key={i}>
+                    <div className="flex gap-2">
+                      <textarea
+                        value={q}
+                        onChange={(e) => setQuestions(questions.map((x, j) => (j === i ? e.target.value : x)))}
+                        rows={2}
+                        className={`${inputCls} flex-1 ${
+                          warning ? (warning.level === "illegal" ? "border-red-400" : "border-amber-400") : ""
+                        }`}
+                      />
+                      <button
+                        onClick={() => setQuestions(questions.filter((_, j) => j !== i))}
+                        className="self-start rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs text-slate-400 hover:text-red-600"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    {warning && (
+                      <div
+                        className={`mt-1.5 rounded-lg border-2 px-3 py-2 text-xs ${
+                          warning.level === "illegal"
+                            ? "border-red-300 bg-white"
+                            : "border-amber-300 bg-white"
+                        }`}
+                      >
+                        <p className={`flex items-center gap-1.5 font-bold ${warning.level === "illegal" ? "text-red-700" : "text-amber-700"}`}>
+                          <IconAlert size={13} />
+                          {warning.level === "illegal"
+                            ? "Don't ask this — likely illegal in hiring"
+                            : "Possibly questionable — safer wording available"}
+                        </p>
+                        <p className="mt-1 text-slate-600">{warning.reason}</p>
+                        {warning.suggestion && (
+                          <>
+                            <p className="mt-1.5 text-slate-700">
+                              <span className="font-semibold">Suggested instead:</span> &ldquo;{warning.suggestion}&rdquo;
+                            </p>
+                            <button
+                              onClick={() =>
+                                setQuestions(questions.map((x, j) => (j === i ? warning.suggestion! : x)))
+                              }
+                              className="mt-1.5 rounded-md border border-slate-300 px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50"
+                            >
+                              Use suggestion
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
               <button
                 onClick={() => setQuestions([...questions, ""])}
                 className="text-sm font-semibold"
@@ -501,6 +576,291 @@ function PositionModal({
               {busy ? "Saving…" : "Save position"}
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- bulk import (CSV / Excel, e.g. Indeed export) ---------- */
+
+interface ImportRow {
+  name: string;
+  phone: string;
+  email: string;
+}
+
+interface Duplicate {
+  row: ImportRow;
+  existing: Candidate;
+  /** undefined = undecided; "ignore" = skip the new row; "replace" = archive old, import new */
+  choice?: "ignore" | "replace";
+}
+
+const normName = (s: string) => s.toLowerCase().replace(/\s+/g, " ").trim();
+const phoneDigits = (s: string) => s.replace(/\D/g, "").slice(-10);
+
+function ImportCandidatesModal({
+  brand,
+  positions,
+  existing,
+  onClose,
+  onDone,
+}: {
+  brand: string;
+  positions: Position[];
+  existing: Candidate[];
+  onClose: () => void;
+  onDone: (msg: { ok: boolean; text: string }) => void;
+}) {
+  const [positionId, setPositionId] = useState(positions[0]?.id ?? "");
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [clean, setClean] = useState<ImportRow[]>([]);
+  const [dups, setDups] = useState<Duplicate[]>([]);
+  const [parsedAny, setParsedAny] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const parseFile = async (file?: File) => {
+    if (!file) return;
+    setErr(null);
+    setFileName(file.name);
+    try {
+      const XLSX = await import("xlsx");
+      const wb = XLSX.read(await file.arrayBuffer(), { cellDates: false });
+      const grid = XLSX.utils.sheet_to_json<unknown[]>(wb.Sheets[wb.SheetNames[0]], {
+        header: 1,
+      }) as unknown[][];
+      const cell = (v: unknown) => String(v ?? "").trim();
+
+      // Find the header row (Indeed exports: "name" or "first/last name", "email", "phone").
+      let headerAt = -1;
+      for (let i = 0; i < Math.min(grid.length, 10); i++) {
+        const heads = (grid[i] ?? []).map((c) => cell(c).toLowerCase());
+        if (heads.some((h) => /name/.test(h)) && heads.some((h) => /e-?mail|phone/.test(h))) {
+          headerAt = i;
+          break;
+        }
+      }
+      if (headerAt < 0) {
+        setErr('No candidate columns found — the file needs a "Name" column plus email or phone.');
+        return;
+      }
+      const heads = (grid[headerAt] ?? []).map((c) => cell(c).toLowerCase());
+      const col = (re: RegExp) => heads.findIndex((h) => re.test(h));
+      const nameCol = col(/^(candidate )?(full )?name$/) >= 0 ? col(/^(candidate )?(full )?name$/) : col(/name/);
+      const firstCol = col(/first ?name/);
+      const lastCol = col(/last ?name/);
+      const emailCol = col(/e-?mail/);
+      const phoneCol = col(/phone|mobile/);
+
+      const seen = new Set<string>();
+      const rows: ImportRow[] = [];
+      for (const r of grid.slice(headerAt + 1)) {
+        let name = "";
+        if (firstCol >= 0 || lastCol >= 0) {
+          name = [firstCol >= 0 ? cell(r?.[firstCol]) : "", lastCol >= 0 ? cell(r?.[lastCol]) : ""]
+            .filter(Boolean)
+            .join(" ");
+        }
+        if (!name && nameCol >= 0) name = cell(r?.[nameCol]);
+        if (!name) continue;
+        const row: ImportRow = {
+          name,
+          phone: phoneCol >= 0 ? cell(r[phoneCol]) : "",
+          email: emailCol >= 0 ? cell(r[emailCol]).toLowerCase() : "",
+        };
+        const key = normName(name) + "|" + row.email;
+        if (seen.has(key)) continue; // duplicate inside the file itself
+        seen.add(key);
+        rows.push(row);
+      }
+      if (rows.length === 0) {
+        setErr("No candidate rows found under the header row.");
+        return;
+      }
+
+      // Cross-reference against everyone already in the pipeline (any status).
+      const cleanRows: ImportRow[] = [];
+      const dupRows: Duplicate[] = [];
+      for (const row of rows) {
+        const match = existing.find(
+          (c) =>
+            (row.email && c.email?.toLowerCase() === row.email) ||
+            (row.phone && c.phone && phoneDigits(c.phone) === phoneDigits(row.phone) && phoneDigits(row.phone).length >= 7) ||
+            normName(c.name) === normName(row.name)
+        );
+        if (match) dupRows.push({ row, existing: match });
+        else cleanRows.push(row);
+      }
+      setClean(cleanRows);
+      setDups(dupRows);
+      setParsedAny(true);
+    } catch {
+      setErr("Couldn't read that file. Save it as .csv or .xlsx and try again.");
+    }
+  };
+
+  const allResolved = dups.every((d) => d.choice);
+  const toImport = clean.length + dups.filter((d) => d.choice === "replace").length;
+
+  const doImport = async () => {
+    setBusy(true);
+    setErr(null);
+    try {
+      // Archive the old record wherever the owner chose "replace".
+      for (const d of dups) {
+        if (d.choice === "replace") {
+          await fetch("/api/hr/candidates", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: d.existing.id, status: "archived" }),
+          });
+        }
+      }
+      const rows = [...clean, ...dups.filter((d) => d.choice === "replace").map((d) => d.row)];
+      if (rows.length === 0) {
+        onDone({ ok: true, text: "Nothing imported — every row was ignored as a duplicate." });
+        return;
+      }
+      const res = await fetch("/api/hr/candidates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ positionId, candidates: rows }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Import failed");
+      onDone({
+        ok: true,
+        text: `Imported ${data.imported} candidate${data.imported === 1 ? "" : "s"}${
+          dups.filter((d) => d.choice === "ignore").length > 0
+            ? ` · ${dups.filter((d) => d.choice === "ignore").length} duplicate${dups.filter((d) => d.choice === "ignore").length === 1 ? "" : "s"} ignored`
+            : ""
+        }${data.invitesSent ? ` · ${data.invitesSent} invites sent` : " · open each candidate to copy their interview link"}`,
+      });
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Import failed");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const inputCls =
+    "w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-slate-500";
+
+  return (
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/60 px-5 py-8">
+      <div className="max-h-full w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6">
+        <h3 className="text-lg font-bold text-slate-900">Import candidates</h3>
+        <p className="mt-1.5 text-sm text-slate-600">
+          Upload the CSV or Excel export from Indeed (or any list with name, email, phone
+          columns). Everyone is checked against your existing pipeline first.
+        </p>
+
+        <div className="mt-4">
+          <label className="mb-1 block text-xs font-medium text-slate-500">Position *</label>
+          <select value={positionId} onChange={(e) => setPositionId(e.target.value)} className={`${inputCls} bg-white`}>
+            {positions.map((p) => (
+              <option key={p.id} value={p.id}>{p.title}</option>
+            ))}
+          </select>
+        </div>
+
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".csv,.xlsx,.xls"
+          className="hidden"
+          onChange={(e) => {
+            void parseFile(e.target.files?.[0] ?? undefined);
+            e.target.value = "";
+          }}
+        />
+        <button
+          onClick={() => fileRef.current?.click()}
+          className="mt-3 w-full rounded-lg border border-dashed border-slate-300 py-6 text-sm font-medium text-slate-600 hover:bg-slate-50"
+        >
+          {fileName ? `Selected: ${fileName} — choose a different file` : "Choose a .csv or .xlsx file"}
+        </button>
+
+        {err && <p className="mt-3 rounded bg-red-50 px-3 py-2 text-sm text-red-700">{err}</p>}
+
+        {parsedAny && (
+          <div className="mt-4 space-y-3">
+            <p className="text-sm font-semibold text-slate-800">
+              {clean.length} new candidate{clean.length === 1 ? "" : "s"} ready
+              {dups.length > 0 ? ` · ${dups.length} possible duplicate${dups.length === 1 ? "" : "s"}` : ""}
+            </p>
+
+            {dups.length > 0 && (
+              <div className="rounded-lg border-2 border-amber-300 bg-white p-3">
+                <p className="flex items-center gap-1.5 text-sm font-bold text-amber-700">
+                  <IconAlert size={15} /> Possible Duplicate Candidate{dups.length === 1 ? "" : "s"}
+                </p>
+                <p className="mt-1 text-xs text-slate-500">
+                  These names match people already in your pipeline. Decide each one before importing.
+                </p>
+                <div className="mt-2 space-y-2">
+                  {dups.map((d, i) => {
+                    const meta = STATUS_META[d.existing.status] ?? STATUS_META.invited;
+                    return (
+                      <div key={i} className="rounded-lg border border-slate-200 p-2.5">
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px]">
+                          <span className="font-semibold text-slate-800">{d.row.name}</span>
+                          <span className="text-[11px] text-slate-400">{d.row.email || d.row.phone}</span>
+                        </div>
+                        <p className="mt-1 flex flex-wrap items-center gap-2 text-[11.5px] text-slate-500">
+                          Already in pipeline as <span className="font-semibold text-slate-700">{d.existing.name}</span>
+                          <span className={`rounded-full border px-1.5 py-0.5 text-[10px] font-semibold ${meta.cls}`}>{meta.label}</span>
+                          {d.existing.score != null && <span className="font-bold">{d.existing.score}/10</span>}
+                          <span>added {dt(d.existing.created_at)}</span>
+                        </p>
+                        <div className="mt-2 flex gap-2">
+                          <button
+                            onClick={() => setDups(dups.map((x, j) => (j === i ? { ...x, choice: "ignore" } : x)))}
+                            className={`rounded-md border px-2.5 py-1 text-[11px] font-semibold ${
+                              d.choice === "ignore" ? "border-slate-700 bg-slate-700 text-white" : "border-slate-300 text-slate-600"
+                            }`}
+                          >
+                            Ignore duplicate
+                          </button>
+                          <button
+                            onClick={() => setDups(dups.map((x, j) => (j === i ? { ...x, choice: "replace" } : x)))}
+                            className={`rounded-md border px-2.5 py-1 text-[11px] font-semibold ${
+                              d.choice === "replace" ? "border-amber-600 bg-amber-600 text-white" : "border-amber-300 text-amber-700"
+                            }`}
+                          >
+                            Archive old &amp; import new
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="mt-5 grid grid-cols-2 gap-3">
+          <button onClick={onClose} className="rounded-lg border border-slate-300 py-2.5 text-sm font-semibold text-slate-700">
+            Cancel
+          </button>
+          <button
+            onClick={doImport}
+            disabled={busy || !parsedAny || !positionId || !allResolved}
+            className="rounded-lg py-2.5 text-sm font-semibold text-white disabled:opacity-40"
+            style={{ background: brand }}
+          >
+            {busy
+              ? "Importing…"
+              : !parsedAny
+                ? "Import"
+                : !allResolved
+                  ? "Decide duplicates first"
+                  : `Import ${toImport} candidate${toImport === 1 ? "" : "s"}`}
+          </button>
         </div>
       </div>
     </div>

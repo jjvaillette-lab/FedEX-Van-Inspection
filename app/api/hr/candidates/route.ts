@@ -41,14 +41,70 @@ export async function GET(request: Request) {
   });
 }
 
-/** POST: add a candidate and send their interview invite. */
+/** POST: add a candidate (or a bulk import batch) and send interview invites. */
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as {
     name?: string;
     phone?: string;
     email?: string;
     positionId?: string;
+    /** Bulk import (CSV/Excel from Indeed etc.): [{name, phone, email}] */
+    candidates?: { name?: string; phone?: string; email?: string }[];
   };
+
+  if (Array.isArray(body.candidates)) {
+    if (!body.positionId) {
+      return NextResponse.json({ error: "Pick a position for the import." }, { status: 400 });
+    }
+    const rows = body.candidates
+      .filter((c) => c.name?.trim())
+      .map((c) => ({
+        name: c.name!.trim(),
+        phone: c.phone?.trim() || null,
+        email: c.email?.trim() || null,
+        position_id: body.positionId,
+        interview_token: crypto.randomUUID().replace(/-/g, ""),
+      }));
+    if (rows.length === 0) {
+      return NextResponse.json({ error: "No candidates with names found." }, { status: 400 });
+    }
+    const supabase = getSupabase();
+    if (!supabase) return NextResponse.json({ error: "Database not configured." }, { status: 503 });
+    const companyId = await companyFromRequest(request);
+    const { data, error } = await supabase
+      .from("candidates")
+      .insert(rows.map((r) => ({ ...r, company_id: companyId })))
+      .select("id, name, phone, email, interview_token");
+    if (error) {
+      return NextResponse.json(
+        { error: /relation|schema cache/i.test(error.message) ? HIRING_MIGRATION_MSG : error.message },
+        { status: 500 }
+      );
+    }
+
+    // Invites go out where channels are configured (SMS first, else email).
+    const origin = new URL(request.url).origin;
+    const { data: pos } = await supabase
+      .from("positions")
+      .select("title")
+      .eq("id", body.positionId)
+      .maybeSingle();
+    const title = (pos?.title as string) ?? "our open position";
+    let invitesSent = 0;
+    for (const c of data ?? []) {
+      const link = `${origin}/interview/${c.interview_token}`;
+      const text =
+        `Hi ${(c.name as string).split(/\s+/)[0]} — thanks for applying to the ${title} role! ` +
+        `Your first-round interview is ready. It's a ~10 minute chat you can do anytime: ${link}`;
+      if (c.phone && (await sendInviteSms(c.phone as string, text))) invitesSent++;
+      else if (c.email && emailConfigured()) {
+        await sendEmail([c.email as string], `Your interview with us — ${title}`, text);
+        invitesSent++;
+      }
+    }
+    return NextResponse.json({ ok: true, imported: rows.length, invitesSent }, { status: 201 });
+  }
+
   if (!body.name?.trim() || !body.positionId) {
     return NextResponse.json({ error: "Candidate name and position are required." }, { status: 400 });
   }

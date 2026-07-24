@@ -626,7 +626,7 @@ export default function InspectionReviewCenter() {
               return bothOpen ? rest : [...rest, pre.id, post.id];
             })
           }
-          className="flex cursor-pointer flex-wrap items-center gap-x-4 gap-y-1.5 px-4 py-3 hover:bg-slate-50/60"
+          className="flex cursor-pointer flex-wrap items-center gap-x-4 gap-y-1.5 px-4 py-3"
         >
           <span className="w-24 font-semibold text-slate-900">{pre.vanId}</span>
           <span className="w-36 truncate text-sm text-slate-600">
