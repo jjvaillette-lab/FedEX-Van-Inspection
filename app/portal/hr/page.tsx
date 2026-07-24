@@ -92,6 +92,7 @@ export default function HiringPage() {
   const [editPos, setEditPos] = useState<Position | "new" | "template" | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [reviewPos, setReviewPos] = useState<Position | null>(null);
   const [detail, setDetail] = useState<Candidate | null>(null);
   const [invite, setInvite] = useState<{ name: string; link: string; smsSent: boolean; emailSent: boolean } | null>(null);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
@@ -232,12 +233,20 @@ export default function HiringPage() {
                 {p.questions.length} interview question{p.questions.length === 1 ? "" : "s"} ·{" "}
                 {candidates.filter((c) => c.position_id === p.id && c.status !== "archived").length} candidates
               </p>
-              <button
-                onClick={() => setEditPos(p)}
-                className="mt-3 rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-              >
-                Edit position &amp; questions
-              </button>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  onClick={() => setEditPos(p)}
+                  className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  Edit position &amp; questions
+                </button>
+                <button
+                  onClick={() => setReviewPos(p)}
+                  className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  Review questions for compliance
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -332,6 +341,18 @@ export default function HiringPage() {
           onSaved={() => {
             setEditPos(null);
             reload();
+          }}
+        />
+      )}
+      {reviewPos && (
+        <ComplianceReviewModal
+          brand={brand}
+          position={reviewPos}
+          onClose={() => setReviewPos(null)}
+          onEdit={() => {
+            const p = reviewPos;
+            setReviewPos(null);
+            setEditPos(p);
           }}
         />
       )}
@@ -576,6 +597,97 @@ function PositionModal({
               {busy ? "Saving…" : "Save position"}
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- compliance review ---------- */
+
+function ComplianceReviewModal({
+  brand,
+  position,
+  onClose,
+  onEdit,
+}: {
+  brand: string;
+  position: Position;
+  onClose: () => void;
+  onEdit: () => void;
+}) {
+  const results = position.questions.map((q) => ({
+    text: q.text,
+    warning: checkInterviewQuestion(q.text),
+  }));
+  const flagged = results.filter((r) => r.warning);
+
+  return (
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/60 px-5 py-8">
+      <div className="max-h-full w-full max-w-lg overflow-y-auto rounded-xl bg-white p-6">
+        <h3 className="text-lg font-bold text-slate-900">Compliance review</h3>
+        <p className="mt-1 text-sm text-slate-500">{position.title} · {results.length} questions</p>
+
+        {flagged.length === 0 ? (
+          <p className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
+            ✓ All {results.length} questions look job-related and compliant.
+          </p>
+        ) : (
+          <p className="mt-4 rounded-lg border-2 border-amber-300 bg-white px-4 py-2.5 text-sm font-semibold text-amber-700">
+            ⚠ {flagged.length} of {results.length} questions need attention.
+          </p>
+        )}
+
+        <div className="mt-3 space-y-2">
+          {results.map((r, i) => (
+            <div
+              key={i}
+              className={`rounded-lg border px-3 py-2 text-[13px] ${
+                r.warning
+                  ? r.warning.level === "illegal"
+                    ? "border-2 border-red-300"
+                    : "border-2 border-amber-300"
+                  : "border-slate-200"
+              }`}
+            >
+              <div className="flex items-start gap-2">
+                <span className={r.warning ? (r.warning.level === "illegal" ? "text-red-600" : "text-amber-600") : "text-emerald-600"}>
+                  {r.warning ? "⚠" : "✓"}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-slate-700">{r.text}</p>
+                  {r.warning && (
+                    <>
+                      <p className={`mt-1 text-xs font-bold ${r.warning.level === "illegal" ? "text-red-700" : "text-amber-700"}`}>
+                        {r.warning.level === "illegal"
+                          ? "Don't ask this — likely illegal in hiring"
+                          : "Possibly questionable — safer wording available"}
+                      </p>
+                      <p className="mt-0.5 text-xs text-slate-500">{r.warning.reason}</p>
+                      {r.warning.suggestion && (
+                        <p className="mt-1 text-xs text-slate-600">
+                          <span className="font-semibold">Suggested:</span> &ldquo;{r.warning.suggestion}&rdquo;
+                        </p>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-5 grid grid-cols-2 gap-3">
+          <button onClick={onClose} className="rounded-lg border border-slate-300 py-2.5 text-sm font-semibold text-slate-700">
+            Close
+          </button>
+          <button
+            onClick={onEdit}
+            className="rounded-lg py-2.5 text-sm font-semibold text-white"
+            style={{ background: brand }}
+          >
+            Open editor{flagged.length > 0 ? " to fix" : ""}
+          </button>
         </div>
       </div>
     </div>
