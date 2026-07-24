@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import BarcodeScanner from "@/app/components/BarcodeScanner";
@@ -10,6 +10,13 @@ import SignaturePad from "@/app/components/SignaturePad";
 import { useAuth } from "@/app/components/portal/AuthProvider";
 import { PHOTO_STEPS, INTERIOR_STEPS, OPTIONAL_SLOTS, type PhotoStep } from "@/lib/questions";
 import { parseDriverBarcode } from "@/lib/driver";
+import {
+  flushQueue,
+  localTripCounts,
+  queueInspection,
+  recordLocalTrip,
+  registerDriverSW,
+} from "@/lib/offline";
 import {
   IconAlert,
   IconCamera,
@@ -39,6 +46,8 @@ type Step =
 interface SubmitResult {
   status: Inspection["status"];
   tripType: TripType;
+  /** True when the report was saved on the phone to send later (no signal). */
+  offline?: boolean;
 }
 
 const dateKey = (iso: string) => new Date(iso).toLocaleDateString("en-US");
@@ -69,6 +78,16 @@ export default function InspectionPage() {
   const [result, setResult] = useState<SubmitResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [confirmFail, setConfirmFail] = useState(false);
+
+  // Offline support: cache the app shell and send any reports saved on this
+  // phone as soon as it's back in signal.
+  useEffect(() => {
+    registerDriverSW();
+    void flushQueue();
+    const onOnline = () => void flushQueue();
+    window.addEventListener("online", onOnline);
+    return () => window.removeEventListener("online", onOnline);
+  }, []);
 
   /* ---------- trip detection ---------- */
 
@@ -118,8 +137,13 @@ export default function InspectionPage() {
         setCycle(pres + 1);
         setShowCyclePrompt(true);
       } catch {
-        // Offline/first-use: default to pre-trip rather than blocking the driver.
-        void beginTrip("pre", 1);
+        // Offline: fall back to this phone's own record of today's trips for
+        // the van, so pre/post detection still works without signal.
+        const local = localTripCounts(van);
+        if (local.pres === 0) return void beginTrip("pre", 1);
+        if (local.posts < local.pres) return void beginTrip("post", local.pres);
+        setCycle(local.pres + 1);
+        setShowCyclePrompt(true);
       }
     },
     [beginTrip]
@@ -181,26 +205,57 @@ export default function InspectionPage() {
       photoList.push({ slot: "signature", url: signature, description: undefined });
     }
 
+    const body = {
+      driver,
+      vanId,
+      tripType,
+      cycle,
+      answers: answerList,
+      photos: photoList,
+      complete,
+      failed: opts.failed || !complete,
+    };
+
+    // No signal (or the server is down): keep the report on the phone and
+    // send it automatically later. The driver's day is never blocked.
+    const saveOffline = async () => {
+      const hasIssues = answerList.some((a) => a.value === "issue");
+      const status: Inspection["status"] = !complete
+        ? "failed_inspection"
+        : hasIssues
+          ? "flagged"
+          : "passed";
+      await queueInspection(body);
+      if (vanId) recordLocalTrip(vanId, tripType);
+      setResult({ status, tripType, offline: true });
+      setStep("done");
+    };
+
     try {
       const res = await fetch("/api/inspections", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          driver,
-          vanId,
-          tripType,
-          cycle,
-          answers: answerList,
-          photos: photoList,
-          complete,
-          failed: opts.failed || !complete,
-        }),
+        body: JSON.stringify(body),
       });
+      if (res.status >= 500) {
+        await saveOffline();
+        return;
+      }
       if (!res.ok) throw new Error(`Server returned ${res.status}`);
       const data = await res.json();
+      if (vanId) recordLocalTrip(vanId, tripType);
       setResult({ status: data.inspection.status, tripType });
       setStep("done");
     } catch (e) {
+      // Distinguish "network unreachable" (queue it) from a real rejection.
+      if (e instanceof TypeError || !navigator.onLine) {
+        try {
+          await saveOffline();
+          return;
+        } catch {
+          /* IndexedDB unavailable — fall through to the error path */
+        }
+      }
       setError(e instanceof Error ? e.message : "Submit failed");
       setStep(opts.failed ? "questions" : "sign");
     }
@@ -593,6 +648,13 @@ export default function InspectionPage() {
         {/* Done */}
         {step === "done" && result && (
           <div className="py-8 text-center">
+            {result.offline && (
+              <p className="mb-5 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-medium text-sky-800">
+                📶 No signal right now — this report is <strong>saved on this phone</strong> and
+                will send itself automatically as soon as you&apos;re back in coverage. Nothing
+                else to do.
+              </p>
+            )}
             {result.status === "failed_inspection" ? (
               <div>
                 <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-red-100 text-red-600">

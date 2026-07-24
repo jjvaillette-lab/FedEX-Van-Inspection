@@ -5,13 +5,13 @@ import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/app/components/portal/AuthProvider";
 import BrandLogo from "@/app/components/portal/BrandLogo";
-import { MODULE_ICONS, IconGrid, IconSettings, IconLogout, IconMoon, IconSun } from "@/app/components/icons";
+import { MODULE_ICONS, IconGrid, IconSettings, IconShield, IconLogout, IconMoon, IconSun } from "@/app/components/icons";
 import { MODULES, SECTIONS } from "@/lib/tenant";
 
 const THEME_KEY = "lma.theme";
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
-  const { ready, user, tenant, logout, hasPermission, canSeeSection } = useAuth();
+  const { ready, user, tenant, logout, hasPermission, canSeeSection, viewingAs } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [dark, setDark] = useState(false);
@@ -58,6 +58,19 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 
   return (
     <div className="min-h-full bg-slate-50">
+      {viewingAs && (
+        <div className="sticky top-0 z-50 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 bg-amber-500 px-4 py-2 text-center text-[13px] font-semibold text-amber-950">
+          Support view: {viewingAs.name} — every screen shows their data. Access is logged.
+          <button
+            onClick={() =>
+              fetch("/api/admin/view-as", { method: "DELETE" }).then(() => window.location.reload())
+            }
+            className="rounded-md bg-amber-950 px-2.5 py-1 text-[12px] font-bold text-amber-100"
+          >
+            Exit support view
+          </button>
+        </div>
+      )}
       <div className="mx-auto flex min-h-screen max-w-[1400px]">
         {/* Sidebar (desktop) */}
         <aside className="hidden w-60 shrink-0 flex-col border-r border-slate-200 bg-white md:flex">
@@ -138,6 +151,15 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                 style={navStyle(pathname.startsWith("/portal/settings"))}
               >
                 <IconSettings size={17} /> Settings
+              </Link>
+            )}
+            {user.platformAdmin && (
+              <Link
+                href="/portal/admin"
+                className={navItem(pathname.startsWith("/portal/admin"))}
+                style={navStyle(pathname.startsWith("/portal/admin"))}
+              >
+                <IconShield size={17} /> Admin
               </Link>
             )}
             <div className="mt-1 flex items-center justify-between rounded-md px-3 py-2">

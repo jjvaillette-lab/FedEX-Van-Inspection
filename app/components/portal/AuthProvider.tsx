@@ -29,6 +29,8 @@ interface AuthValue {
   tenant: Tenant;
   /** True when signed in with a real per-user account (not the shared password). */
   realSession: boolean;
+  /** Set when a platform admin is in support mode, viewing another company. */
+  viewingAs: { companyId: string; name: string } | null;
   login: (email: string) => Promise<{ ok: boolean; error?: string }>;
   /** Sign in: real account first, legacy shared-password flow as fallback. */
   loginWithPassword: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
@@ -46,6 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<PortalUser | null>(null);
   const [tenant, setTenant] = useState<Tenant>(DEMO_TENANT);
   const [realSession, setRealSession] = useState(false);
+  const [viewingAs, setViewingAs] = useState<{ companyId: string; name: string } | null>(null);
 
   useEffect(() => {
     const restoreLegacy = () => {
@@ -75,6 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (d.user) {
           setUser(d.user as PortalUser);
           if (d.tenant) setTenant(d.tenant as Tenant);
+          setViewingAs(d.viewingAs ?? null);
           setRealSession(true);
         } else {
           restoreLegacy();
@@ -195,6 +199,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user,
       tenant,
       realSession,
+      viewingAs,
       login,
       loginWithPassword,
       logout,
@@ -202,7 +207,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       canSeeSection,
       updateTenant,
     }),
-    [ready, user, tenant, realSession] // eslint-disable-line react-hooks/exhaustive-deps
+    [ready, user, tenant, realSession, viewingAs] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

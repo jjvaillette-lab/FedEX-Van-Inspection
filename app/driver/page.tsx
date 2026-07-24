@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useAuth } from "@/app/components/portal/AuthProvider";
 import BrandLogo from "@/app/components/portal/BrandLogo";
 import { IconClipboard, IconVan } from "@/app/components/icons";
+import { flushQueue, pendingInspections, registerDriverSW } from "@/lib/offline";
 
 type State = "checking" | "activating" | "inactive" | "active" | "error";
 
@@ -19,6 +20,19 @@ export default function DriverHub() {
   const [state, setState] = useState<State>("checking");
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(0);
+
+  // Offline shell + auto-send any reports saved on this phone.
+  useEffect(() => {
+    registerDriverSW();
+    const sync = async () => {
+      await flushQueue().catch(() => {});
+      setPending((await pendingInspections()).length);
+    };
+    void sync();
+    window.addEventListener("online", sync);
+    return () => window.removeEventListener("online", sync);
+  }, []);
 
   const activate = async (key: string) => {
     setState("activating");
@@ -100,6 +114,12 @@ export default function DriverHub() {
 
       {state === "active" && (
         <>
+          {pending > 0 && (
+            <p className="mb-4 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm font-medium text-sky-800">
+              📶 {pending} inspection{pending === 1 ? "" : "s"} saved on this phone, waiting for
+              signal — they&apos;ll send automatically.
+            </p>
+          )}
           <Link
             href="/inspection"
             className="flex flex-col items-center rounded-2xl px-6 py-10 text-center text-white shadow-lg active:scale-[0.99]"

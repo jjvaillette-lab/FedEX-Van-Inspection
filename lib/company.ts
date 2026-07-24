@@ -136,13 +136,42 @@ export async function sessionFromRequest(request: Request): Promise<SessionProfi
   return loadProfile(userId);
 }
 
+/** Support-mode cookie: platform admins temporarily act as another company. */
+export const VIEWAS_COOKIE = "lma_viewas";
+
 /** Which company this request acts for (user session → driver token → legacy). */
 export async function companyFromRequest(request: Request): Promise<string> {
   const session = await sessionFromRequest(request);
-  if (session) return session.companyId;
+  if (session) {
+    // Support mode: only honored for platform staff, and only for real companies.
+    const viewAs = readCookie(request, VIEWAS_COOKIE);
+    if (viewAs && session.platformAdmin && viewAs !== session.companyId) return viewAs;
+    return session.companyId;
+  }
   const driverCompany = await verifyDriverCompany(readCookie(request, DRIVER_COOKIE));
   if (driverCompany) return driverCompany;
   return DEFAULT_COMPANY_ID;
+}
+
+/** Record a platform-staff support action (best-effort; never throws). */
+export async function logAdminAction(
+  adminEmail: string,
+  action: string,
+  companyId?: string | null,
+  detail?: string
+): Promise<void> {
+  try {
+    const supabase = getSupabase();
+    if (!supabase) return;
+    await supabase.from("admin_audit").insert({
+      admin_email: adminEmail,
+      action,
+      company_id: companyId ?? null,
+      detail: detail ?? null,
+    });
+  } catch {
+    /* audit is best-effort */
+  }
 }
 
 /** True when a scoped query failed only because migration-v7 hasn't run. */

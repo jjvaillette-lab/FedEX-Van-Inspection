@@ -39,7 +39,7 @@ export async function POST(request: Request) {
         const profile = userId ? await loadProfile(userId) : null;
         if (!profile) {
           return NextResponse.json(
-            { error: "Your login works, but the account isn't attached to a company yet. Contact support." },
+            { error: "This login isn't active. Ask your company owner to re-enable it." },
             { status: 403 }
           );
         }

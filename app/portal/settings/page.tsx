@@ -418,7 +418,7 @@ function AlertsSection({ brand }: { brand: string }) {
 /* Managers & access                                                   */
 /* ------------------------------------------------------------------ */
 
-function ManagersSection({ brand }: { brand: string }) {
+function ManagersSection({ brand, realSession }: { brand: string; realSession: boolean }) {
   const [managers, setManagers] = useState<ManagerRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [dirty, setDirty] = useState(false);
@@ -431,13 +431,42 @@ function ManagersSection({ brand }: { brand: string }) {
   const [pendingRemove, setPendingRemove] = useState<string | null>(null);
   /** Manager awaiting the second admin-rights confirmation. */
   const [adminConfirm, setAdminConfirm] = useState<ManagerRecord | null>(null);
+  /** Temp password hand-off after provisioning / reset. */
+  const [credentials, setCredentials] = useState<{ manager: ManagerRecord; password: string } | null>(null);
+  const [provisioning, setProvisioning] = useState<string | null>(null);
 
-  useEffect(() => {
+  const reload = () => {
     fetch("/api/managers")
       .then((r) => r.json())
       .then((d) => setManagers(d.managers ?? []))
       .finally(() => setLoading(false));
-  }, []);
+  };
+  useEffect(reload, []);
+
+  /** Create/reset/disable a real login for a manager. */
+  const account = async (m: ManagerRecord, action: "provision" | "reset" | "deactivate" | "reactivate") => {
+    setProvisioning(m.id);
+    setMessage(null);
+    try {
+      const res = await fetch("/api/managers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          action === "provision"
+            ? { action, name: m.name, email: m.email, admin: m.admin, tabs: m.tabs, permissions: m.permissions }
+            : { action, id: m.id }
+        ),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Request failed");
+      if (data.tempPassword) setCredentials({ manager: m, password: data.tempPassword });
+      reload();
+    } catch (e) {
+      setMessage({ ok: false, text: e instanceof Error ? e.message : "Request failed" });
+    } finally {
+      setProvisioning(null);
+    }
+  };
 
   const mutate = (fn: (list: ManagerRecord[]) => ManagerRecord[]) => {
     setManagers(fn);
@@ -552,39 +581,92 @@ function ManagersSection({ brand }: { brand: string }) {
                   <div className="text-xs text-slate-400">{m.email}</div>
                 </div>
                 <div className="flex items-center gap-3">
+                  <span
+                    className={`rounded-full border px-2 py-0.5 text-[10.5px] font-bold uppercase tracking-wide ${
+                      m.hasLogin
+                        ? m.active !== false
+                          ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                          : "border-rose-200 bg-rose-50 text-rose-700"
+                        : "border-slate-200 bg-slate-50 text-slate-500"
+                    }`}
+                  >
+                    {m.hasLogin ? (m.active !== false ? "Login active" : "Login disabled") : "No login yet"}
+                  </span>
                   {m.admin && (
                     <span className="rounded-full bg-slate-900 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide text-white">
                       Admin
                     </span>
                   )}
-                  {pendingRemove === m.id ? (
-                    <span className="flex items-center gap-2 text-xs">
-                      <span className="text-slate-500">Remove {m.name.split(" ")[0]}?</span>
+                  {!m.hasLogin &&
+                    (pendingRemove === m.id ? (
+                      <span className="flex items-center gap-2 text-xs">
+                        <span className="text-slate-500">Remove {m.name.split(" ")[0]}?</span>
+                        <button
+                          onClick={() => {
+                            mutate((list) => list.filter((x) => x.id !== m.id));
+                            setPendingRemove(null);
+                          }}
+                          className="rounded bg-red-600 px-2.5 py-1 font-semibold text-white"
+                        >
+                          Yes, remove
+                        </button>
+                        <button
+                          onClick={() => setPendingRemove(null)}
+                          className="rounded border border-slate-300 px-2.5 py-1 font-medium text-slate-600"
+                        >
+                          Cancel
+                        </button>
+                      </span>
+                    ) : (
                       <button
-                        onClick={() => {
-                          mutate((list) => list.filter((x) => x.id !== m.id));
-                          setPendingRemove(null);
-                        }}
-                        className="rounded bg-red-600 px-2.5 py-1 font-semibold text-white"
+                        onClick={() => setPendingRemove(m.id)}
+                        className="text-xs font-semibold text-slate-400 hover:text-red-600"
                       >
-                        Yes, remove
+                        Remove
+                      </button>
+                    ))}
+                </div>
+              </div>
+
+              {/* Personal login controls */}
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                {realSession ? (
+                  m.hasLogin ? (
+                    <>
+                      <button
+                        onClick={() => account(m, "reset")}
+                        disabled={provisioning === m.id}
+                        className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                      >
+                        Reset password
                       </button>
                       <button
-                        onClick={() => setPendingRemove(null)}
-                        className="rounded border border-slate-300 px-2.5 py-1 font-medium text-slate-600"
+                        onClick={() => account(m, m.active !== false ? "deactivate" : "reactivate")}
+                        disabled={provisioning === m.id}
+                        className={`rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-40 ${
+                          m.active !== false
+                            ? "border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100"
+                            : "border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                        }`}
                       >
-                        Cancel
+                        {m.active !== false ? "Disable login" : "Re-enable login"}
                       </button>
-                    </span>
+                    </>
                   ) : (
                     <button
-                      onClick={() => setPendingRemove(m.id)}
-                      className="text-xs font-semibold text-slate-400 hover:text-red-600"
+                      onClick={() => account(m, "provision")}
+                      disabled={provisioning === m.id}
+                      className="rounded-lg px-3 py-1.5 text-xs font-bold text-white disabled:opacity-40"
+                      style={{ background: brand }}
                     >
-                      Remove
+                      {provisioning === m.id ? "Creating…" : "Create personal login"}
                     </button>
-                  )}
-                </div>
+                  )
+                ) : (
+                  <p className="text-[11px] text-slate-400">
+                    Sign in with your personal account to create manager logins.
+                  </p>
+                )}
               </div>
 
               {/* Admin toggle — second confirmation before granting */}
@@ -705,6 +787,54 @@ function ManagersSection({ brand }: { brand: string }) {
             </button>
           )}
         </>
+      )}
+
+      {/* Temp password hand-off (shown once) */}
+      {credentials && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 px-5">
+          <div className="w-full max-w-md rounded-xl bg-white p-6">
+            <h3 className="text-lg font-bold text-slate-900">
+              Login ready for {credentials.manager.name}
+            </h3>
+            <p className="mt-2 text-sm text-slate-600">
+              Hand these to {credentials.manager.name.split(" ")[0]} — they sign in at{" "}
+              <strong>lastmileassist.com/login</strong> and should change the password in Settings
+              on first sign-in.
+            </p>
+            <div className="mt-4 space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm">
+              <p>
+                <span className="text-slate-400">Email:</span>{" "}
+                <span className="font-semibold text-slate-800">{credentials.manager.email}</span>
+              </p>
+              <p>
+                <span className="text-slate-400">Temporary password:</span>{" "}
+                <span className="font-mono font-bold text-slate-900">{credentials.password}</span>
+              </p>
+            </div>
+            <p className="mt-2 text-[11px] text-slate-400">
+              This password is shown only once. If it's lost, use Reset password to make a new one.
+            </p>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <button
+                onClick={() =>
+                  navigator.clipboard
+                    ?.writeText(`${credentials.manager.email} / ${credentials.password}`)
+                    .catch(() => {})
+                }
+                className="rounded-lg border border-slate-300 py-2.5 text-sm font-semibold text-slate-700"
+              >
+                Copy
+              </button>
+              <button
+                onClick={() => setCredentials(null)}
+                className="rounded-lg py-2.5 text-sm font-semibold text-white"
+                style={{ background: brand }}
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Second safety confirmation for admin rights */}
@@ -938,7 +1068,7 @@ export default function SettingsPage() {
 
       {isOwner && <DriverDevicesSection brand={tenant.themeColor} />}
 
-      {canUsers && <ManagersSection brand={tenant.themeColor} />}
+      {canUsers && <ManagersSection brand={tenant.themeColor} realSession={realSession} />}
 
       {isOwner && <AlertsSection brand={tenant.themeColor} />}
 

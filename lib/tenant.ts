@@ -97,6 +97,10 @@ export interface ManagerRecord {
   admin: boolean;
   tabs: Section[];
   permissions: PermissionKey[];
+  /** True when this manager has a real personal login (profiles row). */
+  hasLogin?: boolean;
+  /** False when the login is disabled (sign-in blocked). */
+  active?: boolean;
 }
 
 export const DEFAULT_MANAGERS: ManagerRecord[] = [
