@@ -56,9 +56,18 @@ export async function GET(request: Request) {
   return NextResponse.json({ entries: (data as Row[]).map(rowToRecord), persisted: true });
 }
 
+/** Only accept receipt links that live in OUR storage bucket. */
+function ownStorageUrl(url: string | undefined): string | null {
+  const base = process.env.SUPABASE_URL?.trim();
+  if (!url || !base) return null;
+  return url.startsWith(`${base}/storage/v1/object/public/`) ? url : null;
+}
+
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => ({}))) as Partial<MaintenanceRecord> & {
     receiptDataUrl?: string;
+    /** Pre-uploaded via /api/upload-url (direct-to-storage). */
+    receiptUrl?: string;
   };
   // Minimum required entry: the van, the date performed, and the dollar amount.
   if (!body.vanId?.trim() || !body.date || body.cost == null || body.cost === ("" as unknown)) {
@@ -70,8 +79,8 @@ export async function POST(request: Request) {
   const supabase = getSupabase();
   if (!supabase) return NextResponse.json({ error: "Database not configured." }, { status: 503 });
 
-  let receiptUrl: string | null = null;
-  if (body.receiptDataUrl) {
+  let receiptUrl: string | null = ownStorageUrl(body.receiptUrl);
+  if (!receiptUrl && body.receiptDataUrl) {
     try {
       receiptUrl = await uploadVanFile(
         body.vanId.trim(),

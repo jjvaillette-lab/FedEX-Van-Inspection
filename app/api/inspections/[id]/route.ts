@@ -12,6 +12,8 @@ type PatchBody =
       resolvedBy?: string;
       /** Optional receipt file as a data URL; stored in the van's folder. */
       receiptDataUrl?: string;
+      /** Pre-uploaded via /api/upload-url (direct-to-storage). */
+      receiptUrl?: string;
     }
   | {
       action: "comment";
@@ -47,7 +49,10 @@ export async function PATCH(
         resolvedBy: body.resolvedBy.trim(),
         resolvedAt: new Date().toISOString(),
       };
-      if (body.receiptDataUrl) {
+      const base = process.env.SUPABASE_URL?.trim();
+      if (body.receiptUrl && base && body.receiptUrl.startsWith(`${base}/storage/v1/object/public/`)) {
+        resolution.receiptUrl = body.receiptUrl;
+      } else if (body.receiptDataUrl) {
         resolution.receiptUrl = await uploadVanFile(
           inspection.vanId,
           `receipt-${id.slice(0, 8)}-${Date.now()}`,

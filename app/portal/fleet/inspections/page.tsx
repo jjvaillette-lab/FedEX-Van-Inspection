@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/app/components/portal/AuthProvider";
+import { parseJsonResponse, uploadReceiptFile } from "@/app/components/uploadFile";
 import { PHOTO_STEPS, INTERIOR_STEPS, DEFAULT_SETTINGS } from "@/lib/questions";
 import {
   IconCalendar,
@@ -1286,7 +1287,7 @@ function ResolveModal({
 }) {
   const [note, setNote] = useState("");
   const [name, setName] = useState(defaultName);
-  const [receipt, setReceipt] = useState<string | null>(null);
+  const [receipt, setReceipt] = useState<File | null>(null);
   const [receiptName, setReceiptName] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -1294,18 +1295,19 @@ function ResolveModal({
 
   const onFile = (file?: File) => {
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      setReceipt(reader.result as string);
-      setReceiptName(file.name);
-    };
-    reader.readAsDataURL(file);
+    setReceipt(file);
+    setReceiptName(file.name);
   };
 
   const submit = async () => {
     setBusy(true);
     setErr(null);
     try {
+      // Receipts go straight to cloud storage (big PDFs never hit API limits).
+      const receiptUrl = receipt ? await uploadReceiptFile(receipt, inspection.vanId) : null;
+      if (receipt && !receiptUrl) {
+        throw new Error("Receipt upload failed — check your connection and try again.");
+      }
       const res = await fetch(`/api/inspections/${inspection.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -1313,11 +1315,11 @@ function ResolveModal({
           action: "resolve",
           note,
           resolvedBy: name,
-          receiptDataUrl: receipt ?? undefined,
+          receiptUrl: receiptUrl ?? undefined,
         }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Failed");
+      const data = await parseJsonResponse(res);
+      if (!res.ok) throw new Error((data.error as string) ?? "Failed");
       onDone();
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Could not save resolution");

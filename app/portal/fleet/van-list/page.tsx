@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/app/components/portal/AuthProvider";
+import { parseJsonResponse, uploadReceiptFile } from "@/app/components/uploadFile";
 import { IconAlert, IconQr, IconVan, IconWrench } from "@/app/components/icons";
 import type { MaintenanceRecord, VanRecord } from "@/lib/types";
 
@@ -821,7 +822,7 @@ function MaintModal({
   const [cost, setCost] = useState("");
   const [category, setCategory] = useState("Repair");
   const [description, setDescription] = useState("");
-  const [receipt, setReceipt] = useState<string | null>(null);
+  const [receipt, setReceipt] = useState<File | null>(null);
   const [receiptName, setReceiptName] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -839,18 +840,19 @@ function MaintModal({
 
   const onFile = (file?: File) => {
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      setReceipt(reader.result as string);
-      setReceiptName(file.name);
-    };
-    reader.readAsDataURL(file);
+    setReceipt(file);
+    setReceiptName(file.name);
   };
 
   const submit = async () => {
     setBusy(true);
     setErr(null);
     try {
+      // Receipts go straight to cloud storage (big PDFs never hit API limits).
+      const receiptUrl = receipt ? await uploadReceiptFile(receipt, van.id) : null;
+      if (receipt && !receiptUrl) {
+        throw new Error("Receipt upload failed — check your connection and try again.");
+      }
       const res = await fetch("/api/maintenance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -860,12 +862,12 @@ function MaintModal({
           cost: Number(cost),
           category,
           description,
-          receiptDataUrl: receipt ?? undefined,
+          receiptUrl: receiptUrl ?? undefined,
           createdBy: userName,
         }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Save failed");
+      const data = await parseJsonResponse(res);
+      if (!res.ok) throw new Error((data.error as string) ?? "Save failed");
       setShowForm(false);
       setCost("");
       setDescription("");
