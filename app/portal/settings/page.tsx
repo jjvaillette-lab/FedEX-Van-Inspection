@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/app/components/portal/AuthProvider";
 import BrandLogo from "@/app/components/portal/BrandLogo";
+import PasswordInput from "@/app/components/PasswordInput";
 import { IconAlert, IconPlus } from "@/app/components/icons";
 import {
   SECTIONS,
@@ -926,15 +927,15 @@ function AccountSection({ brand }: { brand: string }) {
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
         <div>
           <label className="mb-1 block text-xs font-medium text-slate-500">Current password</label>
-          <input type="password" value={current} onChange={(e) => setCurrent(e.target.value)} className={inputCls} />
+          <PasswordInput value={current} onChange={setCurrent} className={inputCls} autoComplete="current-password" />
         </div>
         <div>
           <label className="mb-1 block text-xs font-medium text-slate-500">New password</label>
-          <input type="password" value={next} onChange={(e) => setNext(e.target.value)} className={inputCls} />
+          <PasswordInput value={next} onChange={setNext} className={inputCls} autoComplete="new-password" />
         </div>
         <div>
           <label className="mb-1 block text-xs font-medium text-slate-500">Confirm new password</label>
-          <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} className={inputCls} />
+          <PasswordInput value={confirm} onChange={setConfirm} className={inputCls} autoComplete="new-password" />
         </div>
       </div>
       {msg && (

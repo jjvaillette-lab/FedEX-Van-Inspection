@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { PLATFORM } from "@/lib/brand";
 import { useAuth } from "@/app/components/portal/AuthProvider";
+import PasswordInput from "@/app/components/PasswordInput";
 
 export default function LoginPage() {
   const { loginWithPassword } = useAuth();
@@ -64,12 +65,10 @@ export default function LoginPage() {
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-slate-600">Password</label>
-              <input
-                type="password"
+              <PasswordInput
                 value={password}
-                onChange={(e) => { setPassword(e.target.value); setError(null); }}
-                placeholder="••••••••"
-                className="w-full rounded-lg border border-slate-300 px-4 py-2.5 outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+                onChange={(v) => { setPassword(v); setError(null); }}
+                autoComplete="current-password"
               />
             </div>
             {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}

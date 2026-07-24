@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/app/components/portal/AuthProvider";
-import { IconAlert, IconVan, IconWrench } from "@/app/components/icons";
+import { IconAlert, IconQr, IconVan, IconWrench } from "@/app/components/icons";
 import type { MaintenanceRecord, VanRecord } from "@/lib/types";
 
 const money = (n: number) =>
@@ -31,6 +31,7 @@ export default function VanListPage() {
   const alertShownRef = useRef(false);
   const [editVan, setEditVan] = useState<VanRecord | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [qrVan, setQrVan] = useState<VanRecord | null>(null);
   const [maintVan, setMaintVan] = useState<VanRecord | null>(null);
   const [statusVan, setStatusVan] = useState<VanRecord | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -92,7 +93,7 @@ export default function VanListPage() {
       </div>
 
       {!v.active && v.statusReason && (
-        <p className="mt-2.5 rounded-lg border border-rose-100 bg-rose-50 px-2.5 py-1.5 text-[11px] text-rose-800">
+        <p className="mt-2.5 rounded-lg border-2 border-rose-300 bg-white px-2.5 py-1.5 text-[11px] text-slate-600">
           {v.statusReason}
           {v.statusChangedAt ? ` · ${dateFmt(v.statusChangedAt)}` : ""}
         </p>
@@ -113,6 +114,13 @@ export default function VanListPage() {
       </div>
 
       <div className="mt-3.5 flex gap-2">
+        <button
+          onClick={() => setQrVan(v)}
+          title="Van QR code — print or replace"
+          className="inline-flex w-10 items-center justify-center rounded-lg border border-slate-300 bg-white py-2 text-slate-600 hover:bg-slate-50"
+        >
+          <IconQr size={15} />
+        </button>
         <button
           onClick={() => setMaintVan(v)}
           className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-slate-300 bg-white py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
@@ -245,10 +253,10 @@ export default function VanListPage() {
             </p>
             <div className="mt-3 max-h-60 space-y-1.5 overflow-y-auto">
               {inactive.map((v) => (
-                <div key={v.id} className="rounded-lg border border-rose-100 bg-rose-50 px-3 py-2">
+                <div key={v.id} className="rounded-lg border-2 border-rose-300 bg-white px-3 py-2">
                   <p className="text-sm font-bold text-slate-900">{v.id}</p>
                   {v.statusReason && (
-                    <p className="text-[11px] text-rose-800">
+                    <p className="text-[11px] text-slate-600">
                       {v.statusReason}
                       {v.statusChangedAt ? ` · ${dateFmt(v.statusChangedAt)}` : ""}
                     </p>
@@ -299,6 +307,7 @@ export default function VanListPage() {
           }}
         />
       )}
+      {qrVan && <VanQrModal van={qrVan} brand={brand} onClose={() => setQrVan(null)} />}
       {maintVan && (
         <MaintModal van={maintVan} brand={brand} canManage={canManage} userName={user?.name ?? ""} onClose={() => setMaintVan(null)} />
       )}
@@ -422,6 +431,97 @@ function EditVanModal({
               {busy ? "Saving…" : "Save van"}
             </button>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- van QR code ---------- */
+
+/**
+ * Every van's scannable code, generated on the spot from the van number —
+ * so a reprinted or replaced sticker is always correct, automatically.
+ */
+function VanQrModal({
+  van,
+  brand,
+  onClose,
+}: {
+  van: VanRecord;
+  brand: string;
+  onClose: () => void;
+}) {
+  const [qr, setQr] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    import("qrcode").then(async (m) => {
+      const dataUrl = await m.default.toDataURL(van.id, { width: 600, margin: 2 });
+      if (alive) setQr(dataUrl);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [van.id]);
+
+  const detail = [van.year, van.make, van.model].filter(Boolean).join(" ");
+
+  const print = () => {
+    if (!qr) return;
+    const win = window.open("", "_blank");
+    if (!win) return;
+    win.document.write(`<!doctype html><html><head><title>${van.id} — QR</title><style>
+      body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;display:flex;justify-content:center;padding-top:40px}
+      .card{text-align:center;border:2px solid #111;border-radius:16px;padding:32px 40px;max-width:420px}
+      h1{font-size:34px;margin:0 0 4px}
+      .sub{color:#555;font-size:14px;margin:0 0 16px}
+      img{width:300px;height:300px}
+      .note{margin-top:20px;font-size:13px;color:#888}
+      @media print{body{padding-top:0}}
+    </style><script>window.onload=function(){window.print();}</scr${""}ipt></head><body>
+      <div class="card">
+        <h1>${van.id}</h1>
+        <p class="sub">${detail || "&nbsp;"}${van.plate ? ` · ${van.plate}` : ""}</p>
+        <img src="${qr}" alt="QR" />
+        <p class="note">DVIR — mount inside the driver door</p>
+      </div>
+    </body></html>`);
+    win.document.close();
+  };
+
+  return (
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/60 px-5">
+      <div className="w-full max-w-sm rounded-xl bg-white p-6 text-center">
+        <h2 className="text-lg font-bold text-slate-900">{van.id} — QR code</h2>
+        <p className="mt-1 text-xs text-slate-500">
+          {detail}
+          {van.plate ? ` · ${van.plate}` : ""}
+        </p>
+        {qr ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={qr} alt={`QR code for ${van.id}`} className="mx-auto mt-4 h-56 w-56 rounded-lg border border-slate-200" />
+        ) : (
+          <div className="mx-auto mt-4 flex h-56 w-56 items-center justify-center rounded-lg border border-slate-200 text-sm text-slate-400">
+            Generating…
+          </div>
+        )}
+        <p className="mt-3 text-[11px] text-slate-400">
+          Drivers scan this to start a DVIR for this van. It&apos;s generated fresh from the van
+          number every time — a reprint is always correct.
+        </p>
+        <div className="mt-4 grid grid-cols-2 gap-3">
+          <button onClick={onClose} className="rounded-lg border border-slate-300 py-2.5 text-sm font-semibold text-slate-700">
+            Close
+          </button>
+          <button
+            onClick={print}
+            disabled={!qr}
+            className="rounded-lg py-2.5 text-sm font-semibold text-white disabled:opacity-40"
+            style={{ background: brand }}
+          >
+            Print QR
+          </button>
         </div>
       </div>
     </div>
