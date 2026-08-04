@@ -30,11 +30,9 @@ function detailsText(d: ContactDetails): string {
   return parts.join(" · ");
 }
 
-// Leads go to Jason. The Resend account (jason.v@ptrntransport.com) is in
-// test mode and can ONLY deliver to its own address — switch this to
-// jjvaillette@gmail.com after lastmileassist.com is verified as a sending
-// domain in Resend (until then that address gets a 403).
-const LEAD_EMAIL = "jason.v@ptrntransport.com";
+// Leads go to Jason. lastmileassist.com is a verified sending domain in
+// Resend, so any recipient works and mail comes from the brand address.
+const LEAD_EMAIL = "jjvaillette@gmail.com";
 
 async function sendEmail(subject: string, text: string): Promise<{ sent: boolean; reason: string }> {
   const key = process.env.RESEND_API_KEY;
@@ -46,7 +44,7 @@ async function sendEmail(subject: string, text: string): Promise<{ sent: boolean
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        from: process.env.CONTACT_FROM || "Last Mile Assist <onboarding@resend.dev>",
+        from: process.env.CONTACT_FROM || "Last Mile Assist <leads@lastmileassist.com>",
         to: [to],
         subject,
         text,
