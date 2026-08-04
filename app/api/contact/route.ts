@@ -30,9 +30,13 @@ function detailsText(d: ContactDetails): string {
   return parts.join(" · ");
 }
 
+// For now every lead goes straight to Jason; switch back to CONTACT_EMAIL env
+// once the lastmileassist.com inbox is live.
+const LEAD_EMAIL = "jjvaillette@gmail.com";
+
 async function sendEmail(subject: string, text: string): Promise<{ sent: boolean; reason: string }> {
   const key = process.env.RESEND_API_KEY;
-  const to = process.env.CONTACT_EMAIL;
+  const to = LEAD_EMAIL;
   if (!key) return { sent: false, reason: "no_api_key" };
   if (!to) return { sent: false, reason: "no_contact_email" };
   try {
@@ -86,7 +90,7 @@ export async function POST(request: Request) {
   const baseRow = {
     name: body.name.trim(),
     email: body.email.trim(),
-    recipient: process.env.CONTACT_EMAIL ?? null,
+    recipient: LEAD_EMAIL,
   };
 
   // Prefer the structured column; fold details into the message text when the

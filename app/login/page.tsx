@@ -38,11 +38,17 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-full items-center justify-center px-5 py-12" style={{ background: PLATFORM.navyDeep }}>
+    <div
+      className="flex min-h-screen items-center justify-center px-5 py-12"
+      style={{
+        background:
+          "radial-gradient(ellipse 60% 45% at 50% -10%, rgba(30,136,255,.18), transparent), #0A1120",
+      }}
+    >
       <div className="w-full max-w-sm">
         <Link href="/" className="mb-8 flex items-center justify-center gap-2.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/lma-mark.svg" alt="" className="h-9 w-9" />
+          <img src="/lma-icon.png" alt="" className="h-10 w-10" />
           <span className="text-xl font-extrabold tracking-tight text-white">
             Last Mile <span style={{ color: PLATFORM.amber }}>Assist</span>
           </span>
