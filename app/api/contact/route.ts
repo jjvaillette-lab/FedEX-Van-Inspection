@@ -30,9 +30,11 @@ function detailsText(d: ContactDetails): string {
   return parts.join(" · ");
 }
 
-// For now every lead goes straight to Jason; switch back to CONTACT_EMAIL env
-// once the lastmileassist.com inbox is live.
-const LEAD_EMAIL = "jjvaillette@gmail.com";
+// Leads go to Jason. The Resend account (jason.v@ptrntransport.com) is in
+// test mode and can ONLY deliver to its own address — switch this to
+// jjvaillette@gmail.com after lastmileassist.com is verified as a sending
+// domain in Resend (until then that address gets a 403).
+const LEAD_EMAIL = "jason.v@ptrntransport.com";
 
 async function sendEmail(subject: string, text: string): Promise<{ sent: boolean; reason: string }> {
   const key = process.env.RESEND_API_KEY;
