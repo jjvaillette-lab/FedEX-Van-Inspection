@@ -18,6 +18,7 @@ export default function ContactPage() {
   const [name, setName] = useState("");
   const [company, setCompany] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [routes, setRoutes] = useState("");
   const [employees, setEmployees] = useState("");
   const [city, setCity] = useState("");
@@ -26,7 +27,7 @@ export default function ContactPage() {
   const [status, setStatus] = useState<"idle" | "sending" | "sent">("idle");
   const [error, setError] = useState<string | null>(null);
 
-  const canSubmit = name.trim() && company.trim() && email.trim();
+  const canSubmit = name.trim() && company.trim() && email.trim() && phone.trim();
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,6 +41,7 @@ export default function ContactPage() {
         body: JSON.stringify({
           name,
           email,
+          phone,
           company,
           routes,
           employees,
@@ -123,6 +125,19 @@ export default function ContactPage() {
                   Your email * <span className="text-slate-500">(so we can reply)</span>
                 </label>
                 <input type="email" value={email} onChange={(e) => { setEmail(e.target.value); setError(null); }} className={inputCls} style={inputStyle} />
+              </div>
+
+              <div>
+                <label className={labelCls}>Cell phone *</label>
+                <input
+                  type="tel"
+                  inputMode="tel"
+                  value={phone}
+                  onChange={(e) => { setPhone(e.target.value.replace(/[^\d\s()+.-]/g, "")); setError(null); }}
+                  placeholder="(860) 555-0123"
+                  className={inputCls}
+                  style={inputStyle}
+                />
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">

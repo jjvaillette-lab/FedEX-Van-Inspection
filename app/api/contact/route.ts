@@ -14,6 +14,7 @@ export const runtime = "nodejs";
 
 interface ContactDetails {
   company?: string;
+  phone?: string;
   routes?: string;
   employees?: string;
   city?: string;
@@ -23,6 +24,7 @@ interface ContactDetails {
 function detailsText(d: ContactDetails): string {
   const parts = [
     d.company && `Company: ${d.company}`,
+    d.phone && `Cell: ${d.phone}`,
     d.routes && `Daily routes: ${d.routes}`,
     d.employees && `Employees: ${d.employees}`,
     (d.city || d.state) && `Location: ${[d.city, d.state].filter(Boolean).join(", ")}`,
@@ -65,15 +67,16 @@ export async function POST(request: Request) {
     message?: string;
   } & ContactDetails;
 
-  if (!body.name?.trim() || !body.email?.trim() || !body.company?.trim()) {
+  if (!body.name?.trim() || !body.email?.trim() || !body.company?.trim() || !body.phone?.trim()) {
     return NextResponse.json(
-      { error: "Please add your name, company, and email." },
+      { error: "Please add your name, company, email, and cell phone." },
       { status: 400 }
     );
   }
 
   const details: ContactDetails = {
     company: body.company?.trim(),
+    phone: body.phone?.trim(),
     routes: body.routes?.trim(),
     employees: body.employees?.trim(),
     city: body.city?.trim(),
