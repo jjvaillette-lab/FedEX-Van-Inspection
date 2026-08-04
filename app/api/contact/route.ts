@@ -131,7 +131,17 @@ export async function POST(request: Request) {
       .join("\n")
   );
 
-  return NextResponse.json({ ok: true, emailed: emailResult.sent });
+  if (!emailResult.sent) {
+    console.warn("contact email not sent:", emailResult.reason);
+  }
+
+  // Debug readout (reason only, never the recipient/key): /api/contact?debug=1
+  const debug = new URL(request.url).searchParams.get("debug") === "1";
+  return NextResponse.json(
+    debug
+      ? { ok: true, emailed: emailResult.sent, emailReason: emailResult.reason }
+      : { ok: true, emailed: emailResult.sent }
+  );
 }
 
 export async function GET() {
