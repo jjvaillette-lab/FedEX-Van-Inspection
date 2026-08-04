@@ -16,66 +16,97 @@ import {
   IconWrench,
 } from "@/app/components/icons";
 
-/* ---------------- content ---------------- */
+/* ---------------- palette (dark brand theme) ---------------- */
+
+const BLUE = "#1E88FF"; // logo pin blue
+const AMBER = PLATFORM.amber;
+const BG = "#0A1120"; // page background
+const CARD = "rgba(255,255,255,0.04)";
+const BORDER = "rgba(255,255,255,0.10)";
+const GREEN = "#34D399";
+const RED = "#F87171";
+const PURPLE = "#A78BFA";
+
+/* ---------------- content (from the LMA product walkthrough) ---------------- */
 
 const SERVICES = [
   {
-    bucket: "Fleet",
+    bucket: "Recruiting & Hiring",
     items: [
       {
+        icon: IconUsers,
+        t: "Candidate Pipeline",
+        d: "Applicants flow in from Indeed or CSV and move through First Contact → Interview → Hired on one board — with bulk actions and two-way SMS on every candidate card.",
+      },
+      {
         icon: IconClipboard,
-        t: "Vehicle Inspections",
-        d: "Pre & post-trip checks with guided photo evidence and a legal driver sign-off. Incomplete or failed checks flag management automatically — before the van leaves the yard.",
+        t: "Interviews & Onboarding",
+        d: "Track every interview outcome with reasons, then run background checks and drug tests through a single board — lab ordering, expiration warnings, and an eligibility gate before activation.",
       },
       {
-        icon: IconVan,
-        t: "Van List & Auto-Grounding",
-        d: "Every van's folder — VIN, plate, current mileage pulled from the latest inspection, and its full maintenance file. A safety issue on a driver's check grounds the van automatically until you clear it.",
-      },
-      {
-        icon: IconWrench,
-        t: "Maintenance Tracking & Van ROI",
-        d: "Log every repair by van — mileage, date, cost, receipts — and see exactly what each vehicle is costing you over its life.",
+        icon: IconChart,
+        t: "Training & First Day",
+        d: "Every new hire moves through a visual journey — Registration, Roster, Day 1, Day 2, Active Driver — with check-in capture and automatic reminder texts.",
       },
     ],
   },
   {
-    bucket: "Operations",
+    bucket: "Daily Operations",
     items: [
       {
-        icon: IconChart,
-        t: "Driver Stats & Scorecards",
-        d: "Drop in your daily worksheets and get scorecards by day, week, or season — delivery success, stops per hour, tier rankings, and per-stop bonuses tallied to your exact pay periods.",
-      },
-      {
         icon: IconRoute,
-        t: "Route Monitoring",
-        d: "Keep eyes on routes and daily service levels without chasing texts and phone calls.",
+        t: "Daily Dispatch",
+        d: "Import the day's routes from Amazon, let AI Dispatch pair drivers, vans, and phones, and manage openers, closers, sweeps, and VTO — with live route data beside the board.",
       },
       {
         icon: IconGauge,
-        t: "Package Count & Failed-Delivery Review",
-        d: "Review daily counts and deep-dive failed deliveries so you don't leave money on the table.",
+        t: "Scheduling & Attendance",
+        d: "Staff the week against Amazon targets with one-click Sling import, then print per-driver occurrence reports — VTOs, call-outs, lates, no-shows, and write-ups over any date range.",
       },
       {
-        icon: IconFile,
-        t: "Invoice Review",
-        d: "Put your settlement and vendor invoices under a second set of eyes, every cycle.",
+        icon: IconVan,
+        t: "Fleet, Repairs & Gear",
+        d: "Every van's rental countdown, inspections, gas card, and repair tickets — plus phone and accessory inventories — with expiring rentals surfacing in your alerts automatically.",
       },
     ],
   },
   {
-    bucket: "Back Office",
+    bucket: "Performance",
     items: [
       {
         icon: IconChart,
-        t: "Reporting & Cloud Storage Suite",
-        d: "Full reporting across everything the platform touches, with every record, photo, and document stored securely and searchable forever.",
+        t: "Performance Hub + AI",
+        d: "Six weeks of scorecard history in one view — tier movement, worst-of leaderboards, coaching priorities, and an AI projection of next week's DSP score with a concrete strategy.",
       },
       {
-        icon: IconUsers,
-        t: "Employee Management",
-        d: "Driver records, accountability, and team oversight in one place — built for how contractor teams actually run.",
+        icon: IconFile,
+        t: "Weekly Driver Scorecards",
+        d: "Drop in the weekly Amazon reports and every driver gets a personal scorecard — ranked, tiered, and delivered by SMS, Sling, or email in one click.",
+      },
+      {
+        icon: IconShield,
+        t: "Delivery Review & Safety",
+        d: "Audit recipient-required deliveries stop by stop, and pull Netradyne and Amazon safety events into coaching — sent straight to Sling.",
+      },
+    ],
+  },
+  {
+    bucket: "Money & Compliance",
+    items: [
+      {
+        icon: IconShield,
+        t: "Payroll Pre-Check",
+        d: "Cross-check timecards against Flex data before payroll runs — meal and hour violations, incomplete punches, and wage-theft flags, with a copy-paste fix list.",
+      },
+      {
+        icon: IconWrench,
+        t: "Fleet Payments",
+        d: "Forecast your monthly Amazon van invoice to the line and reconcile prepaid capacity against actual usage — know when Amazon owes you.",
+      },
+      {
+        icon: IconFile,
+        t: "Route Payments",
+        d: "Verify every week's route receipt — hourly base, per-package, pickups, and training — and catch routes the Work Summary forgot to pay before the receipt posts.",
       },
     ],
   },
@@ -83,35 +114,35 @@ const SERVICES = [
 
 const PAIN_POINTS = [
   {
-    q: "Spending 2–3 hours a day on van inspections and filing?",
-    a: "We cut it to almost zero. Drivers scan, shoot, and submit — the paperwork files itself.",
+    q: "Spending scorecard day buried in eight Amazon reports?",
+    a: "Upload them once — driver scorecards, rankings, and tiers generate themselves and send in one click.",
   },
   {
-    q: "Compiling FedEx spreadsheets to track packages and driver performance?",
-    a: "Our system does it automatically — counts, trends, and driver performance without the copy-paste.",
+    q: "Wondering if Amazon's Work Summary paid every route you ran?",
+    a: "Day-of route capture is reconciled against the weekly statement — unpaid routes get flagged before the receipt posts.",
   },
   {
-    q: "Paying an admin to manage team performance manually?",
+    q: "Chasing 2,000 applicants across job boards, texts, and sticky notes?",
+    a: "One pipeline from application to first day — with SMS templates that update candidate status automatically.",
+  },
+  {
+    q: "Finding payroll problems after the checks already went out?",
+    a: "Payroll Pre-Check flags meal violations, missing punches, and wage-theft risks before payroll runs — not after.",
+  },
+  {
+    q: "Paying an admin to manage hiring and performance manually?",
     a: "The portal removes the need for additional staff — a subscription that typically pays for itself in the first month.",
   },
   {
-    q: "Trying to figure out when that van damage happened?",
-    a: "Twice-daily photo inspections are filed in the cloud by van and driver — look back to any day, anytime.",
-  },
-  {
-    q: "Scrambling to pull records for an audit or insurance claim?",
-    a: "Every inspection, photo, and receipt is searchable in seconds — not a weekend in the filing cabinet.",
-  },
-  {
-    q: "Chasing drivers to confirm their checks got done?",
-    a: "Missed or failed checks flag management on their own. No texts, no follow-ups.",
+    q: "Scrambling to pull records for an Amazon audit?",
+    a: "Every driver document, inspection, and receipt is searchable in seconds — not a weekend in the filing cabinet.",
   },
 ];
 
 const CUSTOMERS = [
   { name: "Stratford Delivery Corp", blurb: "Daily pre & post-trip inspections across the fleet, with photo evidence on every van." },
   { name: "Prime Transport", blurb: "Driver scorecards built straight from the daily worksheets — rankings and stop bonuses with zero spreadsheet time." },
-  { name: "Lelit Logistics", blurb: "A safety issue on the morning check grounds the van automatically — nothing questionable leaves the yard." },
+  { name: "Lelit Logistics", blurb: "Weekly Amazon reports in, personal driver scorecards out — delivered to the whole roster in one click." },
   { name: "PTRN Transport", blurb: "Every repair, receipt, and cost filed by van — they know exactly what each vehicle costs to keep on the road." },
   { name: "Abex", blurb: "A recap email every morning at six — yesterday's checks, driver numbers, and anything flagged, before the first route rolls." },
 ];
@@ -120,30 +151,62 @@ function initials(name: string) {
   return name.split(/\s+/).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
 }
 
+/* ---------------- small building blocks ---------------- */
+
+function Chip({ children, color }: { children: React.ReactNode; color: string }) {
+  return (
+    <span
+      className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold"
+      style={{ color, borderColor: `${color}55`, background: `${color}14` }}
+    >
+      {children}
+    </span>
+  );
+}
+
+function FrameBar({ url }: { url: string }) {
+  return (
+    <div className="flex items-center gap-1.5 border-b px-4 py-2.5" style={{ borderColor: BORDER, background: "rgba(255,255,255,0.03)" }}>
+      <span className="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
+      <span className="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
+      <span className="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
+      <span className="ml-3 text-[11px] text-slate-400">{url}</span>
+    </div>
+  );
+}
+
+function StatTile({ n, l, c }: { n: string; l: string; c: string }) {
+  return (
+    <div className="rounded-lg border p-2.5 text-center" style={{ borderColor: BORDER, background: CARD }}>
+      <p className="text-lg font-extrabold tabular-nums" style={{ color: c }}>{n}</p>
+      <p className="text-[8.5px] font-bold uppercase tracking-wide text-slate-500">{l}</p>
+    </div>
+  );
+}
+
 /* ---------------- page ---------------- */
 
 export default function Landing() {
   const { user } = useAuth();
-  const navy = PLATFORM.navy;
 
   return (
-    <div className="min-h-full bg-white text-slate-900">
+    <div className="min-h-full" style={{ background: BG, color: "#E8ECF5" }}>
       {/* Top bar */}
-      <header className="border-b border-slate-200">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
+      <header className="sticky top-0 z-40 border-b backdrop-blur-md" style={{ borderColor: BORDER, background: "rgba(10,17,32,0.82)" }}>
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3.5">
           <div className="flex items-center gap-2.5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/lma-mark.svg" alt="" className="h-8 w-8" />
-            <span className="text-lg font-extrabold tracking-tight" style={{ color: navy }}>
-              Last Mile <span style={{ color: PLATFORM.amber }}>Assist</span>
+            <img src="/lma-icon.png" alt="" className="h-9 w-9" />
+            <span className="text-lg font-extrabold tracking-tight text-white">
+              Last Mile <span style={{ color: AMBER }}>Assist</span>
             </span>
           </div>
           <nav className="flex items-center gap-4 text-sm">
-            <Link href="/contact" className="font-semibold text-slate-600 hover:text-slate-900">Contact</Link>
+            <Link href="/contact" className="font-semibold text-slate-300 hover:text-white">Contact</Link>
             <Link
               href={user ? "/portal" : "/login"}
-              className="rounded-lg px-4 py-2 font-semibold text-white"
-              style={{ background: navy }}
+              className="rounded-lg px-4 py-2 font-semibold text-white shadow-lg"
+              style={{ background: BLUE }}
             >
               {user ? "Go to portal →" : "Log in"}
             </Link>
@@ -152,59 +215,75 @@ export default function Landing() {
       </header>
 
       {/* Hero */}
-      <section className="mx-auto max-w-6xl px-5 pt-16 pb-14 md:pt-24">
-        <div className="max-w-3xl">
-          <span
-            className="inline-block rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider"
-            style={{ background: "#FCECCB", color: "#7a531a" }}
-          >
-            Built for FedEx independent service providers
-          </span>
-          <h1 className="mt-5 text-4xl font-extrabold leading-[1.08] tracking-tight md:text-6xl" style={{ color: navy }}>
-            Your delivery operation, running smoother.
-          </h1>
-          <p className="mt-5 max-w-2xl text-lg text-slate-600">
-            Last Mile Assist streamlines vehicle inspections, fleet maintenance, and the daily
-            back office for last-mile contractors — fewer apps, less paperwork, lower overhead.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link
-              href="/contact"
-              className="rounded-xl px-6 py-3.5 text-base font-semibold text-white shadow-lg"
-              style={{ background: navy }}
+      <section className="relative overflow-hidden">
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              `radial-gradient(ellipse 55% 45% at 80% -10%, ${BLUE}2E, transparent), radial-gradient(ellipse 45% 35% at -5% 108%, ${AMBER}1A, transparent)`,
+          }}
+        />
+        <div className="relative mx-auto max-w-6xl px-5 pt-16 pb-14 md:pt-24">
+          <div className="max-w-3xl">
+            <span
+              className="inline-block rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-wider"
+              style={{ borderColor: `${AMBER}55`, background: `${AMBER}14`, color: AMBER }}
             >
-              Talk to us
-            </Link>
-            <Link
-              href="/login"
-              className="rounded-xl border border-slate-300 bg-white px-6 py-3.5 text-base font-semibold text-slate-700"
-            >
-              Log in
-            </Link>
+              Built for Amazon DSP owners
+            </span>
+            <h1 className="mt-5 text-4xl font-extrabold leading-[1.08] tracking-tight text-white md:text-6xl">
+              The operating system for your Amazon DSP.
+            </h1>
+            <p className="mt-5 max-w-2xl text-lg text-slate-300">
+              Recruiting, scheduling, fleet, scorecards, payroll compliance, and Amazon payment
+              auditing — one command center, built on 15+ years of combined DSP experience.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-2">
+              <Chip color={BLUE}>Recruiting &amp; Hiring</Chip>
+              <Chip color={GREEN}>Scheduling &amp; Attendance</Chip>
+              <Chip color={AMBER}>Fleet &amp; Repairs</Chip>
+              <Chip color={PURPLE}>Scorecards + AI Coaching</Chip>
+              <Chip color={RED}>Payroll Compliance</Chip>
+              <Chip color="#60A5FA">Amazon Payment Audit</Chip>
+            </div>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link
+                href="/contact"
+                className="rounded-xl px-6 py-3.5 text-base font-semibold text-white shadow-lg"
+                style={{ background: BLUE }}
+              >
+                Talk to us
+              </Link>
+              <Link
+                href="/login"
+                className="rounded-xl border px-6 py-3.5 text-base font-semibold text-slate-200"
+                style={{ borderColor: BORDER, background: CARD }}
+              >
+                Log in
+              </Link>
+            </div>
           </div>
         </div>
       </section>
 
       {/* The admin-hours pitch */}
-      <section className="border-y border-slate-200 bg-slate-50">
+      <section className="border-y" style={{ borderColor: BORDER, background: "rgba(255,255,255,0.02)" }}>
         <div className="mx-auto max-w-6xl px-5 py-16">
           <div className="max-w-3xl">
-            <h2 className="text-2xl font-extrabold md:text-3xl" style={{ color: navy }}>
-              The hours are where it hurts.
-            </h2>
-            <p className="mt-3 text-slate-600">
-              Most contractors don&apos;t lose their week to driving — they lose it to
-              administration: paperwork, spreadsheets, chasing confirmations, and paying extra
-              hands just to keep up. Sound familiar?
+            <h2 className="text-2xl font-extrabold text-white md:text-3xl">The hours are where it hurts.</h2>
+            <p className="mt-3 text-slate-400">
+              Most DSP owners don&apos;t lose their week to routes — they lose it to
+              administration: reports, spreadsheets, hiring churn, and paying extra hands just to
+              keep up. Sound familiar?
             </p>
           </div>
 
           <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {PAIN_POINTS.map((p) => (
-              <div key={p.q} className="rounded-2xl border border-slate-200 bg-white p-6">
-                <h3 className="font-bold leading-snug" style={{ color: navy }}>{p.q}</h3>
-                <p className="mt-2.5 flex gap-2 text-sm text-slate-600">
-                  <IconCheckCircle size={17} className="mt-0.5 shrink-0" style={{ color: PLATFORM.amber }} />
+              <div key={p.q} className="rounded-2xl border p-6" style={{ borderColor: BORDER, background: CARD }}>
+                <h3 className="font-bold leading-snug text-white">{p.q}</h3>
+                <p className="mt-2.5 flex gap-2 text-sm text-slate-400">
+                  <IconCheckCircle size={17} className="mt-0.5 shrink-0" style={{ color: AMBER }} />
                   <span>{p.a}</span>
                 </p>
               </div>
@@ -217,11 +296,7 @@ export default function Landing() {
               "1 portal to run your entire enterprise",
               "All documents captured & stored in the cloud",
             ].map((line) => (
-              <div
-                key={line}
-                className="text-2xl font-extrabold leading-snug md:text-[1.7rem]"
-                style={{ color: PLATFORM.amber }}
-              >
+              <div key={line} className="text-2xl font-extrabold leading-snug md:text-[1.7rem]" style={{ color: AMBER }}>
                 {line}
               </div>
             ))}
@@ -231,26 +306,26 @@ export default function Landing() {
 
       {/* Services */}
       <section className="mx-auto max-w-6xl px-5 py-16">
-        <h2 className="text-2xl font-extrabold md:text-3xl" style={{ color: navy }}>What we do</h2>
-        <p className="mt-2 max-w-2xl text-slate-600">
-          Practical tools for every corner of a delivery business — turn on what your operation needs.
+        <h2 className="text-2xl font-extrabold text-white md:text-3xl">What we do</h2>
+        <p className="mt-2 max-w-2xl text-slate-400">
+          Every corner of a DSP business, in one system — turn on what your operation needs.
         </p>
 
         <div className="mt-8 space-y-8">
           {SERVICES.map((b) => (
             <div key={b.bucket}>
-              <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-400">{b.bucket}</h3>
+              <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-500">{b.bucket}</h3>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {b.items.map((it) => (
-                  <div key={it.t} className="rounded-2xl border border-slate-200 bg-white p-6">
+                  <div key={it.t} className="rounded-2xl border p-6" style={{ borderColor: BORDER, background: CARD }}>
                     <span
                       className="flex h-10 w-10 items-center justify-center rounded-lg"
-                      style={{ background: `${navy}12`, color: navy }}
+                      style={{ background: `${BLUE}1F`, color: BLUE }}
                     >
                       <it.icon size={21} />
                     </span>
-                    <h4 className="mt-3 font-bold" style={{ color: navy }}>{it.t}</h4>
-                    <p className="mt-1.5 text-sm text-slate-600">{it.d}</p>
+                    <h4 className="mt-3 font-bold text-white">{it.t}</h4>
+                    <p className="mt-1.5 text-sm text-slate-400">{it.d}</p>
                   </div>
                 ))}
               </div>
@@ -258,37 +333,48 @@ export default function Landing() {
           ))}
         </div>
 
-        {/* FMCSA compliance */}
-        <div className="mt-10 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-7 sm:flex-row sm:items-start">
-          <span
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg"
-            style={{ background: `${navy}12`, color: navy }}
-          >
-            <IconShield size={24} />
-          </span>
-          <div>
-            <h3 className="text-lg font-bold" style={{ color: navy }}>FMCSA-ready out of the box</h3>
-            <p className="mt-1.5 text-sm text-slate-600">
-              Under FMCSA rules, commercial vans require a documented driver inspection every day of
-              use. Our default checklist covers every driver-inspection item in{" "}
-              <strong>49 CFR 396.11</strong> — service and parking brakes, steering, lighting devices
-              and reflectors, tires, horn, windshield wipers, rear-vision mirrors, coupling devices,
-              wheels and rims, and emergency equipment — and every report, photo, and repair
-              certification is retained in the cloud well beyond the DOT&apos;s three-month
-              requirement. Not a DOT operation? Switch to Non-DOT mode and the checklist trims
-              itself to fit.
-            </p>
+        {/* Platform: your own instance */}
+        <div
+          className="mt-10 grid gap-4 rounded-2xl border p-7 sm:grid-cols-2"
+          style={{ borderColor: BORDER, background: "rgba(255,255,255,0.02)" }}
+        >
+          <div className="flex gap-4">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg" style={{ background: `${BLUE}1F`, color: BLUE }}>
+              <IconShield size={24} />
+            </span>
+            <div>
+              <h3 className="text-lg font-bold text-white">Your own instance. Your own data.</h3>
+              <p className="mt-1.5 text-sm text-slate-400">
+                Every DSP runs on its own dedicated instance with its own database — your
+                candidates, drivers, and financials are never pooled with anyone else&apos;s.
+                Sensitive company info sits behind a PIN-locked, encrypted vault, with Touch ID
+                on the finance modules.
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-4">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg" style={{ background: `${BLUE}1F`, color: BLUE }}>
+              <IconGauge size={24} />
+            </span>
+            <div>
+              <h3 className="text-lg font-bold text-white">Connected to your stack.</h3>
+              <p className="mt-1.5 text-sm text-slate-400">
+                Amazon roster and live route sync, Sling schedules and messaging, Indeed applicant
+                import, Netradyne safety events, lab drug-test workflows, and built-in SMS — it
+                works like an app and installs to your dock.
+              </p>
+            </div>
           </div>
         </div>
 
         {/* Custom builds */}
         <div
-          className="mt-10 flex flex-col items-start justify-between gap-4 rounded-2xl p-7 text-white md:flex-row md:items-center"
-          style={{ background: navy }}
+          className="mt-10 flex flex-col items-start justify-between gap-4 rounded-2xl border p-7 md:flex-row md:items-center"
+          style={{ borderColor: `${BLUE}44`, background: `linear-gradient(100deg, ${BLUE}22, rgba(255,255,255,0.02))` }}
         >
           <div>
-            <h3 className="text-lg font-bold">Need something specific to your operation?</h3>
-            <p className="mt-1 text-sm text-white/75">
+            <h3 className="text-lg font-bold text-white">Need something specific to your operation?</h3>
+            <p className="mt-1 text-sm text-slate-400">
               We design and build custom tools for your business — if you track it on a
               spreadsheet today, we can probably turn it into a button.
             </p>
@@ -296,355 +382,222 @@ export default function Landing() {
           <Link
             href="/contact"
             className="shrink-0 rounded-lg px-5 py-2.5 text-sm font-bold"
-            style={{ background: PLATFORM.amber, color: "#3b2a08" }}
+            style={{ background: AMBER, color: "#3b2a08" }}
           >
             Tell us what you need
           </Link>
         </div>
       </section>
 
-      {/* Sneak peek */}
-      <section className="border-t border-slate-200 bg-slate-50">
+      {/* Sneak peek — from the product walkthrough (sample data) */}
+      <section className="border-t" style={{ borderColor: BORDER, background: "rgba(255,255,255,0.02)" }}>
         <div className="mx-auto max-w-6xl px-5 py-16">
-          <h2 className="text-2xl font-extrabold md:text-3xl" style={{ color: navy }}>A look inside</h2>
-          <p className="mt-2 max-w-2xl text-slate-600">
-            The owner portal on your desk, the driver app in the van.
+          <h2 className="text-2xl font-extrabold text-white md:text-3xl">A look inside</h2>
+          <p className="mt-2 max-w-2xl text-slate-400">
+            Your operational command center, every morning. All data shown is sample data.
           </p>
 
           <div className="mt-8 grid items-start gap-8 lg:grid-cols-[1.6fr_1fr]">
-            {/* Portal home mock */}
-            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
-              <div className="flex items-center gap-1.5 border-b border-slate-100 bg-slate-50 px-4 py-2.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
-                <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
-                <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
-                <span className="ml-3 text-[11px] text-slate-400">portal.lastmileassist.com</span>
-              </div>
-              <div className="flex">
-                {/* Mini sidebar */}
-                <div className="hidden w-40 shrink-0 border-r border-slate-100 p-3 sm:block">
-                  <div className="flex items-center gap-2">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-md text-[9px] font-extrabold text-white" style={{ background: navy }}>AD</span>
-                    <span className="text-[11px] font-bold text-slate-800">Atlas Delivery</span>
-                  </div>
-                  <div className="mt-3 space-y-1 text-[10.5px] font-medium">
-                    <div className="rounded px-2 py-1 font-semibold" style={{ background: `${navy}14`, color: navy }}>Overview</div>
-                    <p className="px-2 pt-1 text-[8.5px] font-bold uppercase tracking-wider text-slate-300">Operations</p>
-                    <div className="px-2 py-1 text-slate-500">Driver Stats</div>
-                    <div className="px-2 py-1 text-slate-500">Dispatch</div>
-                    <p className="px-2 pt-1 text-[8.5px] font-bold uppercase tracking-wider text-slate-300">Fleet</p>
-                    <div className="px-2 py-1 text-slate-500">Vehicle Inspections</div>
-                    <div className="px-2 py-1 text-slate-500">Van List</div>
-                    <div className="px-2 py-1 text-slate-500">Maintenance &amp; Costs</div>
-                    <p className="px-2 pt-1 text-[8.5px] font-bold uppercase tracking-wider text-slate-300">Human Resources</p>
-                    <div className="px-2 py-1 text-slate-500">Employee Management</div>
-                  </div>
+            {/* Command center mock */}
+            <div className="overflow-hidden rounded-xl border shadow-2xl" style={{ borderColor: BORDER, background: "#0D1526" }}>
+              <FrameBar url="app.lastmileassist.com" />
+              <div className="p-4">
+                <div
+                  className="rounded-lg border px-3.5 py-2.5"
+                  style={{ borderColor: BORDER, background: `linear-gradient(100deg, ${BLUE}2A, transparent)` }}
+                >
+                  <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500">Tuesday, August 4</p>
+                  <p className="text-sm font-extrabold text-white">Good morning, Alex</p>
                 </div>
-                {/* Overview cards */}
-                <div className="min-w-0 flex-1 p-4">
-                  <p className="text-[10px] text-slate-400">Welcome back, Alex.</p>
-                  <p className="text-sm font-bold text-slate-900">Atlas Delivery Co</p>
-                  <div className="mt-3 grid grid-cols-2 gap-2">
-                    {[
-                      { t: "Vehicle Inspections", s: "42 checks this week", icon: IconClipboard },
-                      { t: "Driver Stats", s: "31 drivers ranked", icon: IconChart },
-                      { t: "Van List", s: "16 active · 1 grounded", icon: IconVan },
-                      { t: "Maintenance & Costs", s: "3 repairs logged", icon: IconWrench },
-                    ].map((c) => (
-                      <div key={c.t} className="rounded-lg border border-slate-200 p-2.5">
-                        <div className="flex items-center justify-between">
-                          <span className="flex h-6 w-6 items-center justify-center rounded-md" style={{ background: `${navy}12`, color: navy }}>
-                            <c.icon size={13} />
-                          </span>
-                          <span className="rounded-full px-1.5 py-0.5 text-[8px] font-bold uppercase" style={{ background: `${navy}14`, color: navy }}>
-                            Active
-                          </span>
-                        </div>
-                        <p className="mt-1.5 text-[11px] font-semibold leading-tight text-slate-800">{c.t}</p>
-                        <p className="text-[9.5px] text-slate-400">{c.s}</p>
-                      </div>
-                    ))}
-                  </div>
+                <div className="mt-2.5 grid grid-cols-3 gap-2">
+                  <StatTile n="18" l="Routes Today" c="#fff" />
+                  <StatTile n="12" l="Interviews" c="#fff" />
+                  <StatTile n="0" l="Critical Alerts" c={GREEN} />
                 </div>
-              </div>
-            </div>
-
-            {/* Driver app mock */}
-            <div className="mx-auto w-full max-w-[240px]">
-              <div className="overflow-hidden rounded-[2rem] border-[6px] border-slate-800 bg-white shadow-xl">
-                <div className="px-4 pb-5 pt-4" style={{ background: navy }}>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-white/70">Driver App</p>
-                  <p className="text-sm font-bold text-white">Pre-Trip · Van 12</p>
-                </div>
-                <div className="space-y-2 p-3">
+                <div className="mt-2.5 rounded-lg border" style={{ borderColor: BORDER, background: CARD }}>
+                  <p className="border-b px-3 py-2 text-[9px] font-bold uppercase tracking-wider text-slate-500" style={{ borderColor: BORDER }}>
+                    🔔 Needs Attention
+                  </p>
                   {[
-                    { t: "Tires & wheels" },
-                    { t: "Brakes" },
-                    { t: "Lights & signals" },
-                    { t: "Photos: 4 of 4" },
-                  ].map((row) => (
-                    <div key={row.t} className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2">
-                      <span className="text-[11px] font-medium text-slate-700">{row.t}</span>
-                      <IconCheckCircle size={15} className="text-emerald-500" />
-                    </div>
-                  ))}
-                  <div className="rounded-lg py-2.5 text-center text-[12px] font-bold text-white" style={{ background: navy }}>
-                    Submit inspection
-                  </div>
-                </div>
-              </div>
-              <p className="mt-3 text-center text-xs text-slate-400">
-                Drivers scan the van&apos;s QR code — no logins, no training curve.
-              </p>
-            </div>
-          </div>
-
-          {/* Fleet drill-down mock */}
-          <div className="mt-8 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
-            <div className="flex items-center gap-1.5 border-b border-slate-100 bg-slate-50 px-4 py-2.5">
-              <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
-              <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
-              <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
-              <span className="ml-3 text-[11px] text-slate-400">portal.lastmileassist.com/fleet</span>
-            </div>
-            <div className="p-4 sm:p-5">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <p className="text-[10px] text-slate-400">Portal / Fleet</p>
-                  <p className="text-sm font-bold text-slate-900">Fleet</p>
-                </div>
-                <span className="rounded-lg border border-slate-200 px-2.5 py-1 text-[11px] font-semibold text-slate-500">
-                  Export CSV
-                </span>
-              </div>
-
-              {/* Fleet tabs */}
-              <div className="mt-3 flex gap-1 border-b border-slate-200 text-[11.5px] font-semibold">
-                {["Inspections", "Maintenance", "Vans", "Reports"].map((t, i) => (
-                  <span
-                    key={t}
-                    className={`rounded-t-md px-3 py-1.5 ${i === 0 ? "border-b-2 text-slate-900" : "text-slate-400"}`}
-                    style={i === 0 ? { borderColor: navy, color: navy } : undefined}
-                  >
-                    {t}
-                  </span>
-                ))}
-              </div>
-
-              {/* Sorting / filters */}
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <div className="flex rounded-lg border border-slate-300 p-0.5 text-[10.5px] font-medium">
-                  {["All", "By Date", "By Van", "By Driver"].map((v, i) => (
-                    <span
-                      key={v}
-                      className={`rounded-md px-2.5 py-1 ${i === 2 ? "text-white" : "text-slate-500"}`}
-                      style={i === 2 ? { background: navy } : undefined}
-                    >
-                      {v}
-                    </span>
-                  ))}
-                </div>
-                <span className="rounded-lg border border-slate-300 px-2.5 py-1 text-[10.5px] text-slate-400">
-                  Search van, driver, route…
-                </span>
-                <span className="rounded-lg border border-slate-300 px-2.5 py-1 text-[10.5px] text-slate-500">
-                  All statuses ▾
-                </span>
-              </div>
-
-              {/* Rows */}
-              <div className="mt-3 overflow-hidden rounded-lg border border-slate-200 text-[11.5px]">
-                <div className="flex items-center gap-3 px-3 py-2.5">
-                  <span className="w-14 font-semibold text-slate-800">Van 04</span>
-                  <span className="w-20 text-slate-500">M. Brooks</span>
-                  <span className="hidden flex-1 text-slate-400 sm:block">Today · 6:48 AM</span>
-                  <span className="rounded bg-sky-50 px-1.5 py-0.5 text-[9.5px] font-bold text-sky-700">PRE</span>
-                  <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[9.5px] font-semibold text-emerald-700">Passed</span>
-                </div>
-
-                {/* Expanded drill-down row */}
-                <div className="border-t border-slate-100">
-                  <div className="flex items-center gap-3 bg-slate-50 px-3 py-2.5">
-                    <span className="w-14 font-semibold text-slate-800">Van 07</span>
-                    <span className="w-20 text-slate-500">D. Lopez</span>
-                    <span className="hidden flex-1 text-slate-400 sm:block">Today · 6:54 AM</span>
-                    <span className="rounded bg-sky-50 px-1.5 py-0.5 text-[9.5px] font-bold text-sky-700">PRE</span>
-                    <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[9.5px] font-semibold text-amber-800">1 issue</span>
-                  </div>
-                  <div className="grid gap-3 border-t border-slate-100 bg-slate-50/60 px-3 py-3 sm:grid-cols-[1fr_1.4fr]">
-                    <div>
-                      <p className="text-[9px] font-bold uppercase tracking-wide text-red-600">Driver-reported issue</p>
-                      <p className="mt-1 rounded border border-red-100 bg-red-50 px-2 py-1.5 text-[11px] text-red-800">
-                        Brakes — soft pedal on startup
-                      </p>
-                      <span className="mt-2 inline-block rounded px-2.5 py-1 text-[10px] font-semibold text-white" style={{ background: navy }}>
-                        Resolve issue
-                      </span>
-                      <p className="mt-1.5 text-[9px] text-slate-400">
-                        Resolutions record who fixed it, when, and the receipt.
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Photos (4) — captured on every check</p>
-                      <div className="mt-1 grid grid-cols-4 gap-1.5">
-                        {[
-                          { l: "Driver Side", s: "/silhouettes/van-driver-side.svg" },
-                          { l: "Back", s: "/silhouettes/van-back.svg" },
-                          { l: "Passenger", s: "/silhouettes/van-passenger-side.svg" },
-                          { l: "Front", s: "/silhouettes/van-front.svg" },
-                        ].map((p) => (
-                          <figure key={p.l}>
-                            <div className="flex h-14 items-center justify-center rounded border border-slate-200 bg-gradient-to-b from-slate-200 to-slate-300 p-1.5">
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img src={p.s} alt="" className="max-h-full opacity-60" />
-                            </div>
-                            <figcaption className="mt-0.5 text-center text-[8.5px] text-slate-500">{p.l}</figcaption>
-                          </figure>
-                        ))}
+                    { n: "Rosa Delgado", s: "Background + drug cleared — ready for activation", b: "Activate" },
+                    { n: "Kylie Trench", s: "Training tomorrow 8:00 AM · DSM3", b: "Open" },
+                    { n: "Harper Nguyen", s: "New applicant — needs first contact", b: "Contact" },
+                  ].map((r) => (
+                    <div key={r.n} className="flex items-center justify-between gap-2 border-b px-3 py-2 last:border-0" style={{ borderColor: BORDER }}>
+                      <div className="min-w-0">
+                        <p className="truncate text-[11px] font-semibold text-slate-200">{r.n}</p>
+                        <p className="truncate text-[9px] text-slate-500">{r.s}</p>
                       </div>
+                      <span
+                        className="shrink-0 rounded-md border px-2 py-1 text-[9px] font-bold"
+                        style={{ color: "#9CC5FF", borderColor: `${BLUE}66`, background: `${BLUE}1C` }}
+                      >
+                        {r.b}
+                      </span>
                     </div>
-                  </div>
+                  ))}
                 </div>
-
-                <div className="flex items-center gap-3 border-t border-slate-100 px-3 py-2.5">
-                  <span className="w-14 font-semibold text-slate-800">Van 21</span>
-                  <span className="w-20 text-slate-500">J. Chen</span>
-                  <span className="hidden flex-1 text-slate-400 sm:block">Yesterday · 6:11 PM</span>
-                  <span className="rounded bg-indigo-50 px-1.5 py-0.5 text-[9.5px] font-bold text-indigo-700">POST</span>
-                  <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[9.5px] font-semibold text-emerald-700">Passed</span>
+                <div className="mt-2.5 grid grid-cols-5 gap-1.5 text-center">
+                  {[
+                    { s: "Applied", n: "24" },
+                    { s: "Interview", n: "31" },
+                    { s: "Drug Test", n: "6" },
+                    { s: "Training", n: "3" },
+                    { s: "Ready", n: "3" },
+                  ].map((st) => (
+                    <div key={st.s} className="rounded-md border py-1.5" style={{ borderColor: BORDER, background: CARD }}>
+                      <p className="text-[12px] font-extrabold text-white">{st.n}</p>
+                      <p className="text-[7.5px] font-bold uppercase tracking-wide text-slate-500">{st.s}</p>
+                    </div>
+                  ))}
                 </div>
               </div>
-              <p className="mt-2 text-[10px] text-slate-400">
-                Sort by date, van, or driver — drill into any check for photos, issues, and resolutions.
+            </div>
+
+            {/* SMS phone mock */}
+            <div className="mx-auto w-full max-w-[240px]">
+              <div className="overflow-hidden rounded-[2rem] border-[6px] border-slate-700 shadow-2xl" style={{ background: "#0D1526" }}>
+                <div className="px-4 pb-4 pt-4" style={{ background: BLUE }}>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-white/80">Hiring Inbox</p>
+                  <p className="text-sm font-bold text-white">Harper Nguyen · SMS</p>
+                </div>
+                <div className="space-y-2 p-3 text-[10.5px] leading-snug">
+                  <div className="max-w-[85%] rounded-xl rounded-bl-sm border px-2.5 py-1.5 text-slate-300" style={{ borderColor: BORDER, background: CARD }}>
+                    Hi! I just applied for the Delivery Driver position.
+                  </div>
+                  <div className="ml-auto max-w-[85%] rounded-xl rounded-br-sm px-2.5 py-1.5 text-white" style={{ background: BLUE }}>
+                    Hi Harper! Thanks for applying to Summit Delivery Co. Pick an interview slot:
+                    Wed 2:00 · Thu 10:00 · Fri 2:00
+                  </div>
+                  <div className="max-w-[85%] rounded-xl rounded-bl-sm border px-2.5 py-1.5 text-slate-300" style={{ borderColor: BORDER, background: CARD }}>
+                    Wednesday at 2 works!
+                  </div>
+                  <div className="rounded-lg border px-2.5 py-1.5 text-center text-[9px] font-bold" style={{ borderColor: `${GREEN}55`, background: `${GREEN}14`, color: GREEN }}>
+                    Status → Interview Confirmed · Wed, Aug 5 · 2:00 PM
+                  </div>
+                </div>
+              </div>
+              <p className="mt-3 text-center text-xs text-slate-500">
+                Templates fill themselves and update candidate status automatically.
               </p>
             </div>
           </div>
 
-          {/* Driver Stats + Van List mocks */}
+          {/* Scorecards + Payroll mocks */}
           <div className="mt-8 grid items-start gap-8 lg:grid-cols-2">
-            {/* Driver Stats mock */}
-            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
-              <div className="flex items-center gap-1.5 border-b border-slate-100 bg-slate-50 px-4 py-2.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
-                <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
-                <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
-                <span className="ml-3 text-[11px] text-slate-400">portal.lastmileassist.com/driver-stats</span>
-              </div>
+            {/* Driver scorecards mock */}
+            <div className="overflow-hidden rounded-xl border shadow-2xl" style={{ borderColor: BORDER, background: "#0D1526" }}>
+              <FrameBar url="app.lastmileassist.com/scorecards" />
               <div className="p-4 sm:p-5">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <p className="text-[10px] text-slate-400">Portal / Operations</p>
-                    <p className="text-sm font-bold text-slate-900">Driver Stats</p>
+                    <p className="text-[10px] text-slate-500">Performance / Scorecards</p>
+                    <p className="text-sm font-bold text-white">Week of Jul 20 – Jul 26</p>
                   </div>
-                  <div className="flex rounded-lg border border-slate-300 p-0.5 text-[10px] font-medium">
-                    {["Day", "Week", "6-Week", "All Time"].map((v, i) => (
-                      <span
-                        key={v}
-                        className={`rounded-md px-2 py-0.5 ${i === 1 ? "text-white" : "text-slate-500"}`}
-                        style={i === 1 ? { background: navy } : undefined}
-                      >
-                        {v}
-                      </span>
-                    ))}
-                  </div>
+                  <span className="rounded-lg px-2.5 py-1 text-[10px] font-bold text-white" style={{ background: BLUE }}>
+                    📨 Send All Scorecards
+                  </span>
                 </div>
 
-                <div className="mt-3 overflow-hidden rounded-lg border border-slate-200 text-[11px]">
-                  <div className="flex items-center gap-2 bg-slate-100 px-3 py-2 font-bold text-slate-700">
-                    <span className="flex-1">COMPANY TOTAL</span>
-                    <span className="w-14 text-right tabular-nums">96.9%</span>
-                    <span className="hidden w-16 text-right tabular-nums sm:block">19.8/hr</span>
-                    <span className="w-16 text-right tabular-nums">$1,842</span>
-                    <span className="w-14" />
-                  </div>
+                <div className="mt-3 grid grid-cols-4 gap-2">
+                  <StatTile n="42" l="Drivers" c="#60A5FA" />
+                  <StatTile n="19" l="Perfect Weeks" c={GREEN} />
+                  <StatTile n="6" l="Safety Hits" c={RED} />
+                  <StatTile n="11" l="CDF Hits" c={AMBER} />
+                </div>
+
+                <div className="mt-3 overflow-hidden rounded-lg border text-[11px]" style={{ borderColor: BORDER }}>
                   {[
-                    { d: "M. Brooks", del: "98.6%", sph: "22.4/hr", b: "$212.85", tier: "Elite", cls: "border-emerald-200 bg-emerald-50 text-emerald-700" },
-                    { d: "R. Patel", del: "96.1%", sph: "20.2/hr", b: "$154.20", tier: "Strong", cls: "border-sky-200 bg-sky-50 text-sky-700" },
-                    { d: "K. Turner", del: "93.4%", sph: "17.8/hr", b: "$88.65", tier: "Good", cls: "border-amber-200 bg-amber-50 text-amber-800" },
-                  ].map((r) => (
-                    <div key={r.d} className="flex items-center gap-2 border-t border-slate-100 px-3 py-2">
-                      <span className="flex-1 font-semibold text-slate-800">{r.d}</span>
-                      <span className="w-14 text-right tabular-nums text-slate-600">{r.del}</span>
-                      <span className="hidden w-16 text-right tabular-nums text-slate-600 sm:block">{r.sph}</span>
-                      <span className="w-16 text-right font-semibold tabular-nums text-slate-800">{r.b}</span>
-                      <span className={`w-14 rounded-full border px-1.5 py-0.5 text-center text-[9px] font-bold uppercase ${r.cls}`}>
+                    { d: "Marcus Bell", m: "412 pkgs · #1/42 ▲2", dcr: "100%", score: "100.0", tier: "Platinum", c: "#60A5FA" },
+                    { d: "Tanya Rivers", m: "1,038 pkgs · #2/42 ▲12", dcr: "100%", score: "100.0", tier: "Platinum", c: "#60A5FA" },
+                    { d: "Chris Dunmore", m: "932 pkgs · #20/42 ▼6", dcr: "100%", score: "97.4", tier: "Silver", c: "#9AA4BD" },
+                  ].map((r, i) => (
+                    <div key={r.d} className={`flex items-center gap-2 px-3 py-2 ${i ? "border-t" : ""}`} style={{ borderColor: BORDER }}>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-slate-200">{r.d}</p>
+                        <p className="text-[9px] text-slate-500">{r.m}</p>
+                      </div>
+                      <span className="w-12 text-right tabular-nums text-slate-400">{r.dcr}</span>
+                      <span className="w-12 text-right font-bold tabular-nums" style={{ color: GREEN }}>{r.score}</span>
+                      <span
+                        className="w-16 rounded-full border px-1.5 py-0.5 text-center text-[8.5px] font-bold"
+                        style={{ color: r.c, borderColor: `${r.c}55`, background: `${r.c}14` }}
+                      >
                         {r.tier}
                       </span>
                     </div>
                   ))}
                 </div>
-                <p className="mt-2 text-[10px] text-slate-400">
-                  Built from your daily worksheets — delivery success, stops per hour, and per-stop
-                  bonuses tallied to your pay periods. A recap email lands every morning at 6.
+                <p className="mt-2 text-[10px] text-slate-500">
+                  Eight Amazon reports in, a personal scorecard for every driver out — sent by
+                  SMS, Sling, or email in one click.
                 </p>
               </div>
             </div>
 
-            {/* Van List mock */}
-            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
-              <div className="flex items-center gap-1.5 border-b border-slate-100 bg-slate-50 px-4 py-2.5">
-                <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
-                <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
-                <span className="h-2.5 w-2.5 rounded-full bg-slate-300" />
-                <span className="ml-3 text-[11px] text-slate-400">portal.lastmileassist.com/van-list</span>
-              </div>
+            {/* Payroll pre-check mock */}
+            <div className="overflow-hidden rounded-xl border shadow-2xl" style={{ borderColor: BORDER, background: "#0D1526" }}>
+              <FrameBar url="app.lastmileassist.com/payroll-pre-check" />
               <div className="p-4 sm:p-5">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <p className="text-[10px] text-slate-400">Portal / Fleet</p>
-                    <p className="text-sm font-bold text-slate-900">Van List</p>
+                    <p className="text-[10px] text-slate-500">Money &amp; Compliance</p>
+                    <p className="text-sm font-bold text-white">Payroll Pre-Check</p>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="rounded-lg border border-emerald-300 px-2 py-1 text-[10px] font-bold text-emerald-700">
-                      Active Vans (16) ▾
-                    </span>
-                    <span className="rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[9.5px] font-semibold text-rose-700">
-                      1 van out of service
-                    </span>
-                  </div>
+                  <span className="rounded-lg px-2.5 py-1 text-[10px] font-bold text-white" style={{ background: BLUE }}>
+                    Upload Payroll CSV
+                  </span>
                 </div>
 
-                <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
-                  <div className="rounded-lg border border-slate-200 p-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[12px] font-bold text-slate-900">Van 06</span>
-                      <span className="rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[8.5px] font-bold uppercase text-emerald-700">
-                        Active
-                      </span>
-                    </div>
-                    <p className="mt-0.5 text-[9.5px] text-slate-400">2022 Ford Transit 250</p>
-                    <p className="mt-1.5 text-[10px] text-slate-600">
-                      Mileage <span className="font-bold text-slate-900">84,112</span>
-                      <span className="text-slate-400"> · from today&apos;s check</span>
-                    </p>
-                    <div className="mt-2 flex gap-1.5 text-[9px] font-semibold">
-                      <span className="flex-1 rounded border border-slate-300 py-1 text-center text-slate-600">Maint</span>
-                      <span className="flex-1 rounded border border-slate-300 py-1 text-center text-slate-600">Edit info</span>
-                      <span className="flex-1 rounded bg-rose-600 py-1 text-center text-white">Inactivate</span>
-                    </div>
-                  </div>
-
-                  <div className="rounded-lg border border-rose-200 p-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[12px] font-bold text-slate-900">Van 11</span>
-                      <span className="rounded-full border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-[8.5px] font-bold uppercase text-rose-700">
-                        Inactive
-                      </span>
-                    </div>
-                    <p className="mt-1.5 rounded border border-rose-100 bg-rose-50 px-1.5 py-1 text-[9px] text-rose-800">
-                      Auto — safety issue on today&apos;s check: Brakes
-                    </p>
-                    <div className="mt-2 flex gap-1.5 text-[9px] font-semibold">
-                      <span className="flex-1 rounded border border-slate-300 py-1 text-center text-slate-600">Maint</span>
-                      <span className="flex-1 rounded border border-slate-300 py-1 text-center text-slate-600">Edit info</span>
-                      <span className="flex-1 rounded bg-emerald-600 py-1 text-center text-white">Activate</span>
-                    </div>
-                  </div>
+                <div className="mt-3 grid grid-cols-3 gap-2">
+                  <StatTile n="2" l="Violations" c={RED} />
+                  <StatTile n="6" l="Warnings" c={AMBER} />
+                  <StatTile n="3" l="Wage Theft Flags" c={PURPLE} />
                 </div>
-                <p className="mt-2 text-[10px] text-slate-400">
-                  A safety issue on a driver&apos;s check grounds the van automatically — you see
-                  why, fix it, and put it back in service with one click.
+
+                <div className="mt-3 space-y-1.5 text-[11px]">
+                  {[
+                    { t: "Flex / payroll lunch mismatch", n: "1", c: RED },
+                    { t: "Worked (deliveries in Flex) but not in payroll", n: "3", c: PURPLE },
+                    { t: "Incomplete punch — no clock-out", n: "1", c: AMBER },
+                  ].map((row) => (
+                    <div key={row.t} className="flex items-center justify-between rounded-lg border px-3 py-2" style={{ borderColor: BORDER, background: CARD }}>
+                      <span className="font-medium text-slate-300">{row.t}</span>
+                      <span
+                        className="rounded-full border px-2 py-0.5 text-[9.5px] font-bold"
+                        style={{ color: row.c, borderColor: `${row.c}55`, background: `${row.c}14` }}
+                      >
+                        {row.n}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-2 text-[10px] text-slate-500">
+                  Timecards cross-checked against Flex before payroll runs — with a copy-paste fix
+                  list for whoever processes payroll.
                 </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Payments strip */}
+          <div className="mt-8 overflow-hidden rounded-xl border shadow-2xl" style={{ borderColor: BORDER, background: "#0D1526" }}>
+            <FrameBar url="app.lastmileassist.com/route-payments" />
+            <div className="grid gap-4 p-4 sm:grid-cols-3 sm:p-5">
+              <div className="rounded-lg border p-3 text-center" style={{ borderColor: `${BLUE}44`, background: `${BLUE}12` }}>
+                <p className="text-[8.5px] font-bold uppercase tracking-wider" style={{ color: "#9CC5FF" }}>Estimated Receipt · W32</p>
+                <p className="mt-1 text-xl font-extrabold text-white">$7,617.88</p>
+                <p className="text-[9px] text-slate-500">20 routes · 190 hours · 5,214 packages</p>
+              </div>
+              <div className="rounded-lg border p-3 text-center" style={{ borderColor: `${GREEN}44`, background: `${GREEN}0F` }}>
+                <p className="text-[8.5px] font-bold uppercase tracking-wider" style={{ color: GREEN }}>Reconciliation — August</p>
+                <p className="mt-1 text-xl font-extrabold" style={{ color: GREEN }}>+$212.16</p>
+                <p className="text-[9px] text-slate-500">Amazon owes you — caught automatically</p>
+              </div>
+              <div className="rounded-lg border p-3 text-center" style={{ borderColor: `${RED}44`, background: `${RED}0F` }}>
+                <p className="text-[8.5px] font-bold uppercase tracking-wider" style={{ color: RED }}>Payment Verification</p>
+                <p className="mt-1 text-xl font-extrabold text-white">1 route unpaid</p>
+                <p className="text-[9px] text-slate-500">Missing from the Work Summary — flagged before the receipt posts</p>
               </div>
             </div>
           </div>
@@ -653,28 +606,26 @@ export default function Landing() {
 
       {/* Customers */}
       <section className="mx-auto max-w-6xl px-5 py-16">
-        <h2 className="text-2xl font-extrabold md:text-3xl" style={{ color: navy }}>
-          Operators running on Last Mile Assist
-        </h2>
+        <h2 className="text-2xl font-extrabold text-white md:text-3xl">Operators running on Last Mile Assist</h2>
         <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {CUSTOMERS.map((c) => (
-            <div key={c.name} className="rounded-2xl border border-slate-200 bg-white p-5">
+            <div key={c.name} className="rounded-2xl border p-5" style={{ borderColor: BORDER, background: CARD }}>
               <div className="flex items-center gap-3">
                 <span
                   className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-sm font-extrabold text-white"
-                  style={{ background: navy }}
+                  style={{ background: BLUE }}
                 >
                   {initials(c.name)}
                 </span>
-                <h3 className="font-bold text-slate-900">{c.name}</h3>
+                <h3 className="font-bold text-white">{c.name}</h3>
               </div>
-              <p className="mt-3 text-sm text-slate-600">{c.blurb}</p>
+              <p className="mt-3 text-sm text-slate-400">{c.blurb}</p>
             </div>
           ))}
-          <div className="flex items-center justify-center rounded-2xl border border-dashed border-slate-300 p-5 text-center">
+          <div className="flex items-center justify-center rounded-2xl border border-dashed p-5 text-center" style={{ borderColor: "rgba(255,255,255,0.25)" }}>
             <div>
-              <p className="font-semibold text-slate-700">Your operation next?</p>
-              <Link href="/contact" className="mt-1 inline-block text-sm font-semibold" style={{ color: navy }}>
+              <p className="font-semibold text-slate-300">Your operation next?</p>
+              <Link href="/contact" className="mt-1 inline-block text-sm font-semibold" style={{ color: BLUE }}>
                 Get in touch →
               </Link>
             </div>
@@ -683,19 +634,23 @@ export default function Landing() {
       </section>
 
       {/* CTA */}
-      <section className="border-t border-slate-200 bg-slate-50">
+      <section className="border-t" style={{ borderColor: BORDER, background: `linear-gradient(100deg, ${BLUE}1C, rgba(255,255,255,0.02))` }}>
         <div className="mx-auto max-w-6xl px-5 py-16 text-center">
-          <h2 className="text-2xl font-extrabold md:text-3xl" style={{ color: navy }}>
-            See it on your own fleet
-          </h2>
-          <p className="mx-auto mt-3 max-w-xl text-slate-600">
-            Tell us about your operation and we&apos;ll walk you through the portal with your vans in mind.
+          <h2 className="text-2xl font-extrabold text-white md:text-3xl">See it live on your own station&apos;s data</h2>
+          <p className="mx-auto mt-3 max-w-xl text-slate-400">
+            A 30-minute walkthrough with your roster and last week&apos;s scorecard reports is the
+            fastest way to see what Last Mile Assist finds — most stations discover unpaid routes
+            or payroll flags in the first session.
           </p>
           <div className="mt-7 flex flex-wrap justify-center gap-3">
-            <Link href="/contact" className="rounded-xl px-6 py-3.5 font-semibold text-white shadow-lg" style={{ background: navy }}>
-              Contact us
+            <Link href="/contact" className="rounded-xl px-6 py-3.5 font-semibold text-white shadow-lg" style={{ background: BLUE }}>
+              Book a demo
             </Link>
-            <Link href="/login" className="rounded-xl border border-slate-300 bg-white px-6 py-3.5 font-semibold text-slate-700">
+            <Link
+              href="/login"
+              className="rounded-xl border px-6 py-3.5 font-semibold text-slate-200"
+              style={{ borderColor: BORDER, background: CARD }}
+            >
               Log in
             </Link>
           </div>
@@ -703,23 +658,23 @@ export default function Landing() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-slate-200">
-        <div className="mx-auto max-w-6xl px-5 py-8 text-sm text-slate-500">
+      <footer className="border-t" style={{ borderColor: BORDER }}>
+        <div className="mx-auto max-w-6xl px-5 py-8 text-sm text-slate-400">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-2">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/lma-mark.svg" alt="" className="h-6 w-6" />
-              <span className="font-semibold text-slate-700">{PLATFORM.name}</span>
+              <img src="/lma-icon.png" alt="" className="h-6 w-6" />
+              <span className="font-semibold text-slate-200">{PLATFORM.name}</span>
             </div>
             <div className="flex flex-wrap gap-x-5 gap-y-1">
               <span>{PLATFORM.domain}</span>
-              <Link href="/contact" className="hover:text-slate-800">Contact</Link>
-              <Link href="/login" className="hover:text-slate-800">Log in</Link>
+              <Link href="/contact" className="hover:text-white">Contact</Link>
+              <Link href="/login" className="hover:text-white">Log in</Link>
             </div>
           </div>
-          <p className="mt-4 text-xs text-slate-400">
+          <p className="mt-4 text-xs text-slate-500">
             Last Mile Assist is an independent platform and is not affiliated with, sponsored by,
-            or endorsed by FedEx.
+            or endorsed by Amazon or FedEx. All product data shown above is sample data.
           </p>
         </div>
       </footer>
