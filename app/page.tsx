@@ -139,17 +139,6 @@ const PAIN_POINTS = [
   },
 ];
 
-const CUSTOMERS = [
-  { name: "Prime Transport", blurb: "Driver scorecards built straight from the daily worksheets — rankings and stop bonuses with zero spreadsheet time." },
-  { name: "Lelit Logistics", blurb: "Weekly Amazon reports in, personal driver scorecards out — delivered to the whole roster in one click." },
-  { name: "PTRN Transport", blurb: "Every repair, receipt, and cost filed by van — they know exactly what each vehicle costs to keep on the road." },
-  { name: "Abex", blurb: "A recap email every morning at six — yesterday's checks, driver numbers, and anything flagged, before the first route rolls." },
-];
-
-function initials(name: string) {
-  return name.split(/\s+/).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
-}
-
 /* ---------------- small building blocks ---------------- */
 
 function Chip({ children, color }: { children: React.ReactNode; color: string }) {
@@ -348,8 +337,10 @@ export default function Landing() {
                 </div>
                 <div className="rounded-xl border p-4 text-center" style={{ borderColor: `${AMBER}55`, background: `${AMBER}10` }}>
                   <p className="text-sm font-bold leading-snug" style={{ color: AMBER }}>
-                    Not to mention: one missed route payment or van reimbursement can cost you
-                    thousands — that alone can pay for this system for the entire year.
+                    Add the $5,400/month in admin payroll to the $1,950 in VAS fees — that&apos;s
+                    $7,350+ every month on the table. And one missed route payment or van
+                    reimbursement can cost you thousands more: that alone can pay for this
+                    system for the entire year.
                   </p>
                 </div>
                 <Link
@@ -801,35 +792,6 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Customers */}
-      <section className="mx-auto max-w-6xl px-5 py-16">
-        <h2 className="text-2xl font-extrabold text-white md:text-3xl">Operators running on Last Mile Assist</h2>
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {CUSTOMERS.map((c) => (
-            <div key={c.name} className="rounded-2xl border p-5" style={{ borderColor: BORDER, background: CARD }}>
-              <div className="flex items-center gap-3">
-                <span
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-sm font-extrabold text-white"
-                  style={{ background: BLUE }}
-                >
-                  {initials(c.name)}
-                </span>
-                <h3 className="font-bold text-white">{c.name}</h3>
-              </div>
-              <p className="mt-3 text-sm text-slate-400">{c.blurb}</p>
-            </div>
-          ))}
-          <div className="flex items-center justify-center rounded-2xl border border-dashed p-5 text-center" style={{ borderColor: "rgba(255,255,255,0.25)" }}>
-            <div>
-              <p className="font-semibold text-slate-300">Your operation next?</p>
-              <Link href="/contact" className="mt-1 inline-block text-sm font-semibold" style={{ color: BLUE }}>
-                Get in touch →
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* CTA */}
       <section className="border-t" style={{ borderColor: BORDER, background: `linear-gradient(100deg, ${BLUE}1C, rgba(255,255,255,0.02))` }}>
         <div className="mx-auto max-w-6xl px-5 py-16 text-center">
@@ -871,7 +833,7 @@ export default function Landing() {
           </div>
           <p className="mt-4 text-xs text-slate-500">
             Last Mile Assist is an independent platform and is not affiliated with, sponsored by,
-            or endorsed by Amazon or FedEx. All product data shown above is sample data.
+            or endorsed by Amazon. All product data shown above is sample data.
           </p>
         </div>
       </footer>
