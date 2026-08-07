@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { PLATFORM } from "@/lib/brand";
-import { useAuth } from "@/app/components/portal/AuthProvider";
 import {
   IconChart,
   IconCheckCircle,
@@ -175,8 +174,6 @@ function StatTile({ n, l, c }: { n: string; l: string; c: string }) {
 /* ---------------- page ---------------- */
 
 export default function Landing() {
-  const { user } = useAuth();
-
   return (
     <div className="min-h-full" style={{ background: BG, color: "#E8ECF5" }}>
       {/* Top bar */}
@@ -191,13 +188,13 @@ export default function Landing() {
           </div>
           <nav className="flex items-center gap-4 text-sm">
             <Link href="/contact" className="font-semibold text-slate-300 hover:text-white">Contact</Link>
-            <Link
-              href={user ? "/portal" : "/login"}
+            <a
+              href="https://app.lastmileassist.com"
               className="rounded-lg px-4 py-2 font-semibold text-white shadow-lg"
               style={{ background: BLUE }}
             >
-              {user ? "Go to portal →" : "Log in"}
-            </Link>
+              Log in
+            </a>
           </nav>
         </div>
       </header>
@@ -242,13 +239,13 @@ export default function Landing() {
               >
                 Talk to us
               </Link>
-              <Link
-                href="/login"
+              <a
+                href="https://app.lastmileassist.com"
                 className="rounded-xl border px-6 py-3.5 text-base font-semibold text-slate-200"
                 style={{ borderColor: BORDER, background: CARD }}
               >
                 Log in
-              </Link>
+              </a>
             </div>
           </div>
         </div>
@@ -805,13 +802,13 @@ export default function Landing() {
             <Link href="/contact" className="rounded-xl px-6 py-3.5 font-semibold text-white shadow-lg" style={{ background: BLUE }}>
               Book a demo
             </Link>
-            <Link
-              href="/login"
+            <a
+              href="https://app.lastmileassist.com"
               className="rounded-xl border px-6 py-3.5 font-semibold text-slate-200"
               style={{ borderColor: BORDER, background: CARD }}
             >
               Log in
-            </Link>
+            </a>
           </div>
         </div>
       </section>
@@ -828,7 +825,7 @@ export default function Landing() {
             <div className="flex flex-wrap gap-x-5 gap-y-1">
               <span>{PLATFORM.domain}</span>
               <Link href="/contact" className="hover:text-white">Contact</Link>
-              <Link href="/login" className="hover:text-white">Log in</Link>
+              <a href="https://app.lastmileassist.com" className="hover:text-white">Log in</a>
             </div>
           </div>
           <p className="mt-4 text-xs text-slate-500">

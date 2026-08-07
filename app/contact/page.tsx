@@ -78,9 +78,9 @@ export default function ContactPage() {
               Last Mile <span style={{ color: AMBER }}>Assist</span>
             </span>
           </Link>
-          <Link href="/login" className="rounded-lg px-4 py-2 text-sm font-semibold text-white shadow-lg" style={{ background: BLUE }}>
+          <a href="https://app.lastmileassist.com" className="rounded-lg px-4 py-2 text-sm font-semibold text-white shadow-lg" style={{ background: BLUE }}>
             Log in
-          </Link>
+          </a>
         </div>
       </header>
 
