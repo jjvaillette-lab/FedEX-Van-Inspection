@@ -825,6 +825,7 @@ export default function Landing() {
             <div className="flex flex-wrap gap-x-5 gap-y-1">
               <span>{PLATFORM.domain}</span>
               <Link href="/contact" className="hover:text-white">Contact</Link>
+              <Link href="/privacy" className="hover:text-white">Privacy</Link>
               <a href="https://app.lastmileassist.com" className="hover:text-white">Log in</a>
             </div>
           </div>
