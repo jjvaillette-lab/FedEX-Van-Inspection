@@ -36,7 +36,7 @@ function detailsText(d: ContactDetails): string {
 // Resend, so any recipient works and mail comes from the brand address.
 const LEAD_EMAIL = "jjvaillette@gmail.com";
 
-async function sendEmail(subject: string, text: string): Promise<{ sent: boolean; reason: string }> {
+async function sendEmail(subject: string, text: string, replyTo?: string): Promise<{ sent: boolean; reason: string }> {
   const key = process.env.RESEND_API_KEY;
   const to = LEAD_EMAIL;
   if (!key) return { sent: false, reason: "no_api_key" };
@@ -48,6 +48,10 @@ async function sendEmail(subject: string, text: string): Promise<{ sent: boolean
       body: JSON.stringify({
         from: process.env.CONTACT_FROM || "Last Mile Assist <leads@lastmileassist.com>",
         to: [to],
+        // Reply lands with the LEAD, not with leads@ (which has no inbox).
+        // Without this, hitting Reply on a lead email sent the response into
+        // a void and the prospect never heard back.
+        ...(replyTo ? { reply_to: replyTo } : {}),
         subject,
         text,
       }),
@@ -85,40 +89,43 @@ export async function POST(request: Request) {
   const note = body.message?.trim() ?? "";
   const summary = detailsText(details);
 
+  /* Storage is BEST-EFFORT; the email is the lead channel that matters.
+     This used to be the other way round: any Supabase failure returned 500
+     before sendEmail was ever reached, so when the free-tier project paused
+     from inactivity (its hostname stopped resolving entirely), every
+     submission errored and every lead was silently lost — nothing stored,
+     nothing emailed, and the visitor told to "try again" against a dead
+     database. Found 2026-08-28 when the form had been failing for an unknown
+     stretch. Now the insert failure is recorded and the email still goes
+     out; the visitor only sees an error when BOTH channels failed. */
   const supabase = getSupabase();
-  if (!supabase) {
-    return NextResponse.json({ error: "Contact is temporarily unavailable." }, { status: 503 });
-  }
-
-  const baseRow = {
-    name: body.name.trim(),
-    email: body.email.trim(),
-    recipient: LEAD_EMAIL,
-  };
-
-  // Prefer the structured column; fold details into the message text when the
-  // details column doesn't exist yet (migration-v3 optional).
-  const { error } = await supabase
-    .from("contact_messages")
-    .insert({ ...baseRow, message: note || "(no message)", details });
-  if (error) {
-    if (/column|schema cache/i.test(error.message)) {
+  let stored = false;
+  let storeReason = "no_supabase_env";
+  if (supabase) {
+    const baseRow = {
+      name: body.name.trim(),
+      email: body.email.trim(),
+      recipient: LEAD_EMAIL,
+    };
+    // Prefer the structured column; fold details into the message text when
+    // the details column doesn't exist yet (migration-v3 optional).
+    const { error } = await supabase
+      .from("contact_messages")
+      .insert({ ...baseRow, message: note || "(no message)", details });
+    if (!error) {
+      stored = true;
+      storeReason = "stored";
+    } else if (/column|schema cache/i.test(error.message)) {
       const folded = [summary, note].filter(Boolean).join("\n") || "(no message)";
       const { error: legacyError } = await supabase
         .from("contact_messages")
         .insert({ ...baseRow, message: folded });
-      if (legacyError) {
-        return NextResponse.json(
-          { error: "Could not send your message. Please try again." },
-          { status: 500 }
-        );
-      }
+      stored = !legacyError;
+      storeReason = legacyError ? `supabase: ${legacyError.message.slice(0, 120)}` : "stored_legacy";
     } else {
-      return NextResponse.json(
-        { error: "Could not send your message. Please try again." },
-        { status: 500 }
-      );
+      storeReason = `supabase: ${error.message.slice(0, 120)}`;
     }
+    if (!stored) console.warn("contact not stored:", storeReason);
   }
 
   const emailResult = await sendEmail(
@@ -131,18 +138,27 @@ export async function POST(request: Request) {
       note || "(no message)",
     ]
       .filter((l) => l !== undefined)
-      .join("\n")
+      .join("\n"),
+    body.email.trim()
   );
 
   if (!emailResult.sent) {
     console.warn("contact email not sent:", emailResult.reason);
   }
 
-  // Debug readout (reason only, never the recipient/key): /api/contact?debug=1
+  // Only when NEITHER channel worked did the lead actually go nowhere.
+  if (!stored && !emailResult.sent) {
+    return NextResponse.json(
+      { error: "Could not send your message. Please try again." },
+      { status: 500 }
+    );
+  }
+
+  // Debug readout (reasons only, never the recipient/key): /api/contact?debug=1
   const debug = new URL(request.url).searchParams.get("debug") === "1";
   return NextResponse.json(
     debug
-      ? { ok: true, emailed: emailResult.sent, emailReason: emailResult.reason }
+      ? { ok: true, emailed: emailResult.sent, emailReason: emailResult.reason, stored, storeReason }
       : { ok: true, emailed: emailResult.sent }
   );
 }
