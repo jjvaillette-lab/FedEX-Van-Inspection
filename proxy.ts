@@ -25,9 +25,10 @@ function isPublic(pathname: string, method: string): boolean {
     pathname === "/" ||
     pathname === "/login" ||
     pathname === "/contact" ||
-    // The privacy policy must be reachable logged-out: it is what carrier
-    // (A2P 10DLC) reviewers and prospects read, and it is linked from texts.
+    // Privacy and terms must be reachable logged-out: they are what carrier
+    // (A2P 10DLC) reviewers and prospects read, and they are linked from texts.
     pathname === "/privacy" ||
+    pathname === "/terms" ||
     pathname === "/driver" ||
     // Candidate interviews: public pages/API gated by unguessable invite tokens.
     pathname.startsWith("/interview/") ||

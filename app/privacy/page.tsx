@@ -172,6 +172,7 @@ export default function PrivacyPage() {
         <div className="mx-auto flex max-w-3xl flex-wrap gap-x-5 gap-y-1 px-5 py-6 text-sm text-slate-400">
           <span>{PLATFORM.domain}</span>
           <Link href="/" className="hover:text-white">Home</Link>
+          <Link href="/terms" className="hover:text-white">Terms</Link>
           <Link href="/contact" className="hover:text-white">Contact</Link>
         </div>
       </footer>
