@@ -4,8 +4,19 @@ import "./globals.css";
 import { AuthProvider } from "@/app/components/portal/AuthProvider";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://www.lastmileassist.com"),
   title: "Last Mile Assist",
   description: "One portal to run your whole delivery operation.",
+  openGraph: {
+    type: "website",
+    siteName: "Last Mile Assist",
+    title: "Last Mile Assist — One portal to run your whole delivery operation",
+    description:
+      "Inspections, maintenance, driver performance, hiring, and reporting — built by an operator, for delivery service partners.",
+    url: "https://www.lastmileassist.com",
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "Last Mile Assist" }],
+  },
+  twitter: { card: "summary_large_image" },
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
